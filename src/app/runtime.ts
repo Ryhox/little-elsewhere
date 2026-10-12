@@ -142,6 +142,7 @@ export function startRuntime(canvas: HTMLCanvasElement): Runtime {
   if (game.s.blessingChoices.length && !ui().modal) ui().setModal({ kind: 'blessing' });
 
   let insets = { left: 0, right: 0, top: 0, bottom: 0 };
+  let resized = false;
   const resize = () => {
     const ratio = window.devicePixelRatio || 1;
     const w = Math.max(1, Math.round(canvas.clientWidth * ratio));
@@ -151,7 +152,9 @@ export function startRuntime(canvas: HTMLCanvasElement): Runtime {
       canvas.height = h;
     }
     world.camera.resize(w, h);
-    world.camera.insets = { left: insets.left * ratio, right: insets.right * ratio, top: insets.top * ratio, bottom: insets.bottom * ratio };
+    world.camera.setInsets({ left: insets.left * ratio, right: insets.right * ratio, top: insets.top * ratio, bottom: insets.bottom * ratio });
+    // Changing a canvas's size empties it: the very next frame must be drawn, whatever the frame-rate cap says.
+    resized = true;
   };
   resize();
   world.frameAll();
@@ -200,7 +203,8 @@ export function startRuntime(canvas: HTMLCanvasElement): Runtime {
   const frame = (now: number) => {
     raf = requestAnimationFrame(frame);
     const { settings, zen } = ui();
-    if (settings.fps > 0 && now - lastDraw < 1000 / settings.fps - 2) return;
+    if (!resized && settings.fps > 0 && now - lastDraw < 1000 / settings.fps - 2) return;
+    resized = false;
     lastDraw = now;
     let dt = (now - last) / 1000;
     last = now;

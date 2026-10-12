@@ -1,10 +1,14 @@
 import { rt } from '@/app/runtime';
 import { ABILITIES, BUFF_INFO } from '@/config/abilities';
 import { BALANCE } from '@/config/balance';
+import { BUILDING_BY_ID } from '@/config/buildings';
+import { REGION_BY_ID } from '@/config/regions';
 import { EVERGREEN, RESOURCES } from '@/config/resources';
-import { abilityUnlocked, castAbility } from '@/game/actions';
+import { UPGRADE_BY_ID } from '@/config/upgrades';
+import { abilityUnlocked, castAbility, upgradeCost, upgradeVisible } from '@/game/actions';
+import type { Game } from '@/game/context';
 import { fmt, fmtMult, fmtRate, fmtTime } from '@/game/format';
-import { canTurnSeason, tokensOnTurn } from '@/game/prestige';
+import { canTurnSeason, dewForNextToken, tokensOnTurn } from '@/game/prestige';
 import { useUI } from '@/store/ui';
 import { describeGlobal, describeSpring } from './describe';
 import { GuideCard } from './Guide';
@@ -114,25 +118,55 @@ function Abilities() {
   );
 }
 
+/** The upgrade that teaches the first rebirth. */
+const SUNDIAL = UPGRADE_BY_ID.w_sundial;
+
+/**
+ * Where the player stands with Rebirth: the small print on its button, and the fuller story for
+ * its tooltip. Before the first rebirth it says which upgrade is missing, and whether that upgrade
+ * can be bought yet or what still has to be done for it to appear.
+ */
+function rebirthAdvice(game: Game): { hint: string; lines: string[] } {
+  const { s } = game;
+  const gain = tokensOnTurn(game);
+  const about = 'Rebirth starts your world over from the spring and pays you Evergreen Tokens, which make every later season faster.';
+  if (canTurnSeason(game)) return { hint: `Turn the season: +${fmt(gain)}`, lines: [about, `Turning the season now would give +${fmt(gain)}.`] };
+  if (game.mods.flags.sundial || s.seasons > 0) {
+    return { hint: 'Gather more dew first', lines: [about, `It would not earn a token yet. The first one comes at ${fmt(dewForNextToken(game))} dew gathered this season (you have ${fmt(s.earned.dew)}).`] };
+  }
+  if (upgradeVisible(game, SUNDIAL)) {
+    return { hint: `Buy the "${SUNDIAL.name}" upgrade first`, lines: [about, `First buy the "${SUNDIAL.name}" upgrade. It is waiting in the Upgrades menu and costs ${fmt(upgradeCost(game, SUNDIAL).dew ?? 0)} dew.`] };
+  }
+  const needs = (SUNDIAL.req ?? [])
+    .map((r) => (r.region ? `discover ${REGION_BY_ID[r.region].name}` : r.building ? `build ${r.building[1]} ${BUILDING_BY_ID[r.building[0]].name}s` : ''))
+    .filter(Boolean)
+    .join(' and ');
+  return {
+    hint: `"${SUNDIAL.name}" upgrade not unlocked yet`,
+    lines: [about, `For that you need the "${SUNDIAL.name}" upgrade, and you have not unlocked it yet. It appears in the Upgrades menu once you ${needs}.`],
+  };
+}
+
 /** Rebirth, always in the same corner: turn the season, and spend what it earns. */
 function Rebirth() {
   const { game } = rt();
   const setModal = useUI((s) => s.setModal);
   const ready = canTurnSeason(game);
-  const gain = tokensOnTurn(game);
-  const learned = !!game.mods.flags.sundial || game.s.seasons > 0;
-  const hint = ready ? `Turn the season: +${fmt(gain)}` : learned ? 'Gather more dew first' : 'Raise the Sundial first';
+  const { hint } = rebirthAdvice(game);
   return (
     <div className="pointer-events-auto flex items-stretch gap-1">
-      <Btn tone="gold" disabled={!ready} className={`text-left ${ready ? 'anim-shimmer' : ''}`} onClick={() => setModal({ kind: 'turn' })}>
-        <span className="flex items-center gap-1.5">
-          <Icon name="ic_season" size={26} />
-          <span>
-            <span className="block text-base">Rebirth</span>
-            <span className="block text-xs font-normal">{hint}</span>
+      {/* The tooltip hangs on a wrapper: a button that cannot be pressed does not notice the mouse. */}
+      <span className="flex" {...tip(() => ({ title: 'Rebirth', lines: rebirthAdvice(game).lines }))}>
+        <Btn tone="gold" disabled={!ready} className={`text-left ${ready ? 'anim-shimmer' : 'pointer-events-none'}`} onClick={() => setModal({ kind: 'turn' })}>
+          <span className="flex items-center gap-1.5">
+            <Icon name="ic_season" size={26} />
+            <span>
+              <span className="block text-base">Rebirth</span>
+              <span className="block max-w-[190px] text-xs font-normal whitespace-normal">{hint}</span>
+            </span>
           </span>
-        </span>
-      </Btn>
+        </Btn>
+      </span>
       <Btn tone="green" className="text-left" onClick={() => setModal({ kind: 'tree' })}>
         <span className="flex items-center gap-1.5">
           <Icon name={EVERGREEN.icon} size={26} />
@@ -146,11 +180,11 @@ function Rebirth() {
   );
 }
 
-/** Everything drawn over the world that is not a menu. */
-export function Hud() {
+/** Everything drawn over the world that is not a menu. `away` slides it off to the side (for "Just watch"). */
+export function Hud({ away = false }: { away?: boolean }) {
   useTick();
   return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-2 pb-16 md:pb-2">
+    <div className={`slide slide-left pointer-events-none absolute inset-0 flex flex-col justify-between p-2 pb-16 md:pb-2 ${away ? 'is-away' : ''}`} inert={away}>
       {/* On a wide screen the lesson card sits beside the purse, over open sea, instead of over the islands. */}
       <div className="flex flex-col items-start gap-1 xl:flex-row xl:gap-2">
         <div className="flex flex-col items-start gap-1">

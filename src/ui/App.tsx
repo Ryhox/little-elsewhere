@@ -13,7 +13,7 @@ import { freeArea } from './layout';
 import { Modals } from './Modals';
 import { Tooltip, Toasts } from './Overlays';
 import { SidePanel } from './SidePanel';
-import { Btn, Icon } from './widgets';
+import { Btn, Icon, usePresence } from './widgets';
 
 /** Keep the camera's idea of the free screen area in step with the menus. */
 function useCameraInsets(ready: boolean) {
@@ -84,13 +84,17 @@ function Corner() {
   const zen = useUI((s) => s.zen);
   const setZen = useUI((s) => s.setZen);
   return (
-    <div className={`pointer-events-auto absolute top-2 right-2 z-10 flex gap-1 ${zen ? '' : 'md:right-[456px]'}`}>
-      {!zen && (
-        <button type="button" className="skin-plaque grid h-11 w-11 cursor-pointer place-items-center hover:brightness-110" title="Show the whole world" onClick={() => rt().world.frameAll()}>
-          <Icon name="ic_home" size={22} />
-        </button>
-      )}
-      <button type="button" className={`skin-plaque grid h-11 w-11 cursor-pointer place-items-center hover:brightness-110 ${zen ? 'opacity-60' : ''}`} title={zen ? 'Show menus (H)' : 'Just watch (H)'} onClick={() => setZen(!zen)}>
+    <div className={`pointer-events-auto absolute top-2 right-2 z-10 flex gap-1 transition-[right] duration-[220ms] ease-out motion-reduce:transition-none ${zen ? '' : 'md:right-[456px]'}`}>
+      <button
+        type="button"
+        className={`skin-plaque grid h-11 w-11 cursor-pointer place-items-center transition-opacity duration-[220ms] hover:brightness-110 motion-reduce:transition-none ${zen ? 'pointer-events-none opacity-0' : ''}`}
+        title="Show the whole world"
+        tabIndex={zen ? -1 : undefined}
+        onClick={() => rt().world.frameAll()}
+      >
+        <Icon name="ic_home" size={22} />
+      </button>
+      <button type="button" className={`skin-plaque grid h-11 w-11 cursor-pointer place-items-center transition-opacity duration-[220ms] hover:brightness-110 motion-reduce:transition-none ${zen ? 'opacity-60' : ''}`} title={zen ? 'Show menus (H)' : 'Just watch (H)'} onClick={() => setZen(!zen)}>
         <Icon name="ic_eye" size={22} />
       </button>
     </div>
@@ -102,6 +106,8 @@ export function App() {
   const onReady = useCallback(() => setReady(true), []);
   const zen = useUI((s) => s.zen);
   const cutscene = useUI((s) => s.cutscene);
+  // The menus slide out for "Just watch" and back in afterwards, rather than vanishing.
+  const menus = usePresence(!zen);
   useCameraInsets(ready);
   useWorldTooltips(ready);
   useHotkeys(ready);
@@ -112,8 +118,8 @@ export function App() {
       {!ready && <div className="absolute inset-0 grid place-items-center text-2xl text-cream">Little Elsewhere is waking up…</div>}
       {ready && !cutscene && (
         <>
-          {!zen && <Hud />}
-          {!zen && <SidePanel />}
+          {menus.mounted && <Hud away={menus.away} />}
+          {menus.mounted && <SidePanel away={menus.away} />}
           {!zen && <GuideLayer />}
           <Corner />
           <Toasts />

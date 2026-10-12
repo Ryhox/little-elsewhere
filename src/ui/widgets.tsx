@@ -1,4 +1,4 @@
-import type { CSSProperties, MouseEvent, ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { rt } from '@/app/runtime';
 import { RESOURCES } from '@/config/resources';
 import { fmt } from '@/game/format';
@@ -7,6 +7,30 @@ import { useUI, type Tip } from '@/store/ui';
 
 /** Re-render with the live game a few times a second. */
 export const useTick = () => useUI((s) => s.tick);
+
+/** How long the menus take to slide in or out, in milliseconds (the `.slide` and drawer transitions in index.css match it). */
+export const SLIDE_MS = 220;
+
+/**
+ * For something that slides in and out instead of popping: it stays `mounted` while it leaves,
+ * and starts out `away` for an instant when it arrives, so that both ways there is a moment to animate.
+ */
+export function usePresence(show: boolean): { mounted: boolean; away: boolean } {
+  const [mounted, setMounted] = useState(show);
+  const [away, setAway] = useState(!show);
+  useEffect(() => {
+    if (show) {
+      setMounted(true);
+      // Let it be drawn once in its "away" place before it is sent to its real one.
+      const id = setTimeout(() => setAway(false), 20);
+      return () => clearTimeout(id);
+    }
+    setAway(true);
+    const id = setTimeout(() => setMounted(false), SLIDE_MS);
+    return () => clearTimeout(id);
+  }, [show]);
+  return { mounted, away };
+}
 
 /** A sprite from the atlas, scaled by whole numbers whenever it fits so the pixels stay square. */
 export function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {

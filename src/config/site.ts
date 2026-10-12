@@ -6,7 +6,7 @@
 export const SITE = {
   name: 'Little Elsewhere',
   /** The browser tab's title, and the headline of a link preview. */
-  title: 'Little Elsewhere - a cozy pixel-art idle game',
+  title: 'Little Elsewhere: a cozy pixel-art idle game',
   /** One or two sentences for search results and link previews. */
   description: 'Grow a tiny magical world from a single spring. A cozy pixel-art idle game that runs in your browser: plant, build, befriend little creatures and turn the seasons. Free, with no account and no ads.',
   /**

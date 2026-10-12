@@ -193,7 +193,7 @@ saveText(
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Privacy - ${SITE.name}</title>
+    <title>${SITE.name}: Privacy</title>
     <meta name="description" content="What ${SITE.name} saves and where: nothing leaves your device." />
     <meta name="theme-color" content="${SITE.color}" />
     <link rel="icon" type="image/png" href="favicon.png" />

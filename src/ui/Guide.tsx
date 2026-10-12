@@ -457,7 +457,7 @@ export function GuideLayer() {
     phase === 'measure' ? { opacity: 0 } : phase === 'from' ? { transform: away, opacity: 0.2 } : phase === 'here' ? { transform: 'none', opacity: 1, transition: glide } : { transform: away, opacity: 0, transition: glide };
   const free = freeArea(panelOpen);
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center" style={{ padding: 12, paddingRight: free.right + 12, paddingBottom: free.bottom + 12 }}>
+    <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center transition-[padding] duration-[220ms] ease-out motion-reduce:transition-none" style={{ padding: 12, paddingRight: free.right + 12, paddingBottom: free.bottom + 12 }}>
       <div ref={box} className="guide-talk skin-panel cursor-pointer pointer-events-auto w-[640px] max-w-full" style={style} onClick={next}>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-stretch">
           <div className="guide-stage skin-slot shrink-0 self-center">

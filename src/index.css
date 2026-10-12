@@ -222,6 +222,47 @@ canvas {
   animation: shimmer 1.4s steps(6) infinite;
 }
 
+/* ─────────── Menus that slide away ("Just watch") and back, instead of popping ─────────── */
+
+.slide {
+  transition:
+    opacity 220ms ease-out,
+    transform 220ms ease-out,
+    visibility 0s;
+}
+
+/* Out of sight it is also out of reach: hidden once the slide is over. */
+.slide.is-away {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 220ms ease-in,
+    transform 220ms ease-in,
+    visibility 0s 220ms;
+}
+
+/* The purse and its neighbours leave to the left; the menu leaves the way it came (down, or to the right on a wide screen). */
+.slide-left.is-away {
+  transform: translateX(-28px);
+}
+
+.slide-menu.is-away {
+  transform: translateY(28px);
+}
+
+@media (min-width: 768px) {
+  .slide-menu.is-away {
+    transform: translateX(28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide,
+  .slide.is-away {
+    transition: none;
+  }
+}
+
 /* ─────────── The tutorial: what the lesson asks for glows, and an arrow points at it ─────────── */
 
 @keyframes guide-pulse {

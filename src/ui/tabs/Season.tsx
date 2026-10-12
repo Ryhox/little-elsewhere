@@ -66,7 +66,7 @@ export function SeasonTab() {
       <SectionTitle>Rebirth: turning the season</SectionTitle>
       {locked ? (
         <div className="skin-slot text-sm leading-snug">
-          Seasons cannot turn yet. Reach the <b>Hearthside Hamlet</b> and raise the <b>Season Sundial</b>. Then you can end the season, keep Evergreen Tokens forever, and begin again far stronger.
+          Seasons cannot turn yet. Reach the <b>Hearthside Hamlet</b> and buy the <b>Season Sundial</b> upgrade. Then you can end the season, keep Evergreen Tokens forever, and begin again far stronger.
         </div>
       ) : (
         <div className="skin-slot flex flex-col gap-1 text-sm">

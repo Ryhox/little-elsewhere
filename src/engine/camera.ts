@@ -37,7 +37,12 @@ export class Camera {
   targetZoom = 3;
   viewW = 1;
   viewH = 1;
+  /**
+   * How much of the screen the UI covers right now. It glides towards what `setInsets` asked for
+   * rather than jumping, so opening or hiding a menu slides the world aside instead of snapping it.
+   */
   insets: Insets = { left: 0, right: 0, top: 0, bottom: 0 };
+  private targetInsets: Insets = { left: 0, right: 0, top: 0, bottom: 0 };
 
   constructor(private readonly options: CameraOptions) {}
 
@@ -46,11 +51,17 @@ export class Camera {
     this.viewH = viewH;
   }
 
+  /** Say how much of the screen the UI covers from now on. */
+  setInsets(next: Insets): void {
+    this.targetInsets = next;
+  }
+
   /** Jump straight to the target (no easing). */
   snap(): void {
     this.x = this.targetX;
     this.y = this.targetY;
     this.zoom = this.targetZoom;
+    this.insets = { ...this.targetInsets };
   }
 
   update(dt: number): void {
@@ -59,6 +70,10 @@ export class Camera {
     this.y += (this.targetY - this.y) * k;
     this.zoom += (this.targetZoom - this.zoom) * k;
     if (Math.abs(this.zoom - this.targetZoom) < 0.002) this.zoom = this.targetZoom;
+    for (const side of ['left', 'right', 'top', 'bottom'] as const) {
+      const gap = this.targetInsets[side] - this.insets[side];
+      this.insets[side] = Math.abs(gap) < 0.5 ? this.targetInsets[side] : this.insets[side] + gap * k;
+    }
   }
 
   /** Centre of the unobstructed part of the screen, in device pixels. */
@@ -95,8 +110,9 @@ export class Camera {
 
   /** Choose the largest whole zoom that shows the whole rectangle, and centre on it. */
   frame(bounds: Rect, padding = 24): void {
-    const freeW = this.viewW - this.insets.left - this.insets.right;
-    const freeH = this.viewH - this.insets.top - this.insets.bottom;
+    // Fit to where the free area will be once it has settled, not to wherever it is on the way.
+    const freeW = this.viewW - this.targetInsets.left - this.targetInsets.right;
+    const freeH = this.viewH - this.targetInsets.top - this.targetInsets.bottom;
     const fit = Math.min(freeW / (bounds.w + padding * 2), freeH / (bounds.h + padding * 2));
     this.targetZoom = clamp(Math.floor(fit), this.options.minZoom, this.options.maxZoom);
     this.targetX = bounds.x + bounds.w / 2;
