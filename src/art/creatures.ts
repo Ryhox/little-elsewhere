@@ -224,11 +224,9 @@ const WALKERS: Record<string, WalkerSpec> = {
     },
   },
 };
-export const WALKER_NAMES = Object.keys(WALKERS);
 
 /** Wing-beat frames for fliers, as wing lift in -1..1 (up → down). */
 const FLAP: readonly number[] = [1, 0.2, -0.8];
-export const FLAP_FRAMES = FLAP.length;
 
 interface FlierSpec {
   wing: Ramp;

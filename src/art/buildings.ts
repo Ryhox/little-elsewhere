@@ -509,8 +509,6 @@ function sapling(atlas: Atlas): void {
   atlas.add('sapling', p, { snow: true, glow: [[cx - 1, base - 22, 3, 3]], lights: [{ x: cx, y: base - 21, r: 14, tone: 'gold' }] });
 }
 
-export const BLADE_FRAME_COUNT = BLADE_FRAMES;
-
 export function paintBuildings(atlas: Atlas): void {
   for (let i = 0; i < 3; i++) atlas.add(`fern_${i}`, fern(90 + i));
   atlas.add('burrow', burrow(), { snow: true, glow: [[ROOM + 18, ROOM + 11, 1, 1]], lights: [{ x: ROOM + 18, y: ROOM + 11, r: 12, tone: 'warm' }] });

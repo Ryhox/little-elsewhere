@@ -1,100 +1,78 @@
 # Little Elsewhere
 
-A cozy pixel-art incremental game about growing a tiny magical world from a single spring.
+A small, cozy pixel-art game about growing a tiny world out of a single spring.
 
-Tap the spring for Dew, plant and build until the world is alive with creatures, and when
-progress slows, **rebirth** (Turn the Season) for Evergreen Tokens that permanently make every
-future season faster. A full playthrough to the ending takes roughly two hours.
+![The world of Little Elsewhere by day: six small islands joined by bridges](docs/screenshots/world-day.jpg)
 
-Every sprite, sound and UI frame is generated in code — there are no image or audio files.
+You start with one spring that hums when you touch it. Tap it for dew, plant a few ferns, and
+before long creatures move in and the first new island rises out of the sea. There is a petal
+garden, a mushroom grove, a pond with little boats, a meadow full of hives and a hamlet that
+lights its lanterns at night.
+
+When the world has grown as far as it can, you turn the season and start again, keeping a few
+Evergreen Tokens that make every later season go further. A full playthrough to the ending takes
+about two hours. After that you are welcome to stay.
+
+## A look around
+
+<p>
+  <img src="docs/screenshots/world-night.jpg" width="49%" alt="The same islands at night, with lit windows and lanterns" />
+  <img src="docs/screenshots/claudia-hello.jpg" width="49%" alt="Claudia, the teacher, waving and introducing herself" />
+</p>
+
+At night the lanterns come on and some things only gather dew in the dark. Claudia teaches the
+basics in six short lessons, and she is there again when you come back after time away.
+
+![Claudia waving, holding a seedling, reading, cheering and saying thank you](docs/screenshots/claudia.png)
+
+## How it plays
+
+- Tap the spring for dew. Dew buys everything.
+- Plant and build. Whatever you buy appears out in the world and keeps gathering by itself.
+- Use the pointer for more than tapping: sweep up the dewdrops that form on everything, shake
+  trees and bushes, pet the creatures, and drag a rain cloud over whatever should grow faster.
+- Save up to discover new land. Each island brings new things to build.
+- When progress slows, press Rebirth. The world starts over from the spring, but your Evergreen
+  Tokens and what you grew with them stay for good.
+- Close the tab whenever you like. The world keeps busy while you are away.
 
 ## Running it
 
+You need [Node.js](https://nodejs.org). It is developed with Node 26.
+
 ```
 npm install
-npm run dev        # play at http://localhost:5183
-npm run build      # type-check and build to dist/
-npm run balance    # headless playthrough that prints pacing (see below)
+npm run dev
 ```
 
-Open `/?sheet` on the dev server to browse every generated sprite (`/?sheet=oak&zoom=6` to filter and magnify).
+Then open http://localhost:5183 in your browser.
 
-## How the code is organised
-
-```
-src/
-  config/   Everything you would want to tweak, as plain data. No logic.
-  engine/   Reusable systems that know nothing about this game.
-  art/      Sprite generators (paint into the atlas at boot).
-  game/     The simulation. Pure TypeScript, no DOM — runs headless.
-  world/    The living scene: terrain, creatures, lighting, rendering.
-  audio/    Synthesised sound.
-  app/      Wires simulation, world, audio and UI together; owns the frame loop.
-  store/    UI state (Zustand).
-  ui/       React interface.
-scripts/    balance.ts — the headless pacing bot.
-```
-
-Dependencies point one way: `config` ← `game` ← `world`/`ui`, with `engine` usable from anywhere.
-The simulation never imports rendering code, which is what lets `npm run balance` play the game
-in Node.
-
-## Changing things
-
-Almost every change is a data edit in `src/config/`:
-
-| I want to…                         | Edit                                                             |
-| ---------------------------------- | ---------------------------------------------------------------- |
-| Re-balance pacing                  | `balance.ts`, then costs in `buildings.ts` / `regions.ts`        |
-| Add or change a building           | `buildings.ts` (economy) and `world.ts` (`BUILDING_LOOKS`, slots) |
-| Add an upgrade                     | `upgrades.ts` — effects are declarative, no code needed          |
-| Add a permanent (Evergreen) upgrade| `evergreen.ts`                                                   |
-| Change the map                     | `world.ts` — islands, ponds, streams, paths, bridges, decoration |
-| Add a creature                     | `creatures.ts` (behaviour) and `art/creatures.ts` (sprite)       |
-| Add a particle effect              | `particles.ts`                                                   |
-| Change colours                     | `palette.ts` — every sprite follows                              |
-| Change lighting, water, wind       | `render.ts`                                                      |
-| Change a sound                     | `audio.ts`                                                       |
-| Reword the tutorial                | `guide.ts`                                                       |
-
-### How effects work
-
-Upgrades, Wonders, blessings and constellations all describe what they do as data:
-
-```ts
-effects: [mul('b.fern', 2), add('syn.hivePetal', 0.02), flag('butterflies')]
-```
-
-Each effect writes into one "modifier sheet" (`Mods` in `game/types.ts`) that every formula reads
-from. So a new upgrade is one line in a config file, and it is impossible for an upgrade to be
-bought without taking effect.
-
-### Balancing
-
-`npm run balance` plays the game with a simple bot and prints when it reached each milestone.
+To make a version you can host anywhere as plain files:
 
 ```
-npm run balance -- 12              # play 12 seasons (or until the ending)
-npm run balance -- 1 --stop=hill   # never discover the Hill: shows the income plateau before it
-npm run balance -- 1 --trace=hamlet  # log every purchase for a minute after the Hamlet
+npm run build
 ```
 
-Land prices are set from those plateaus: a land should cost a few minutes of the income a player
-has once everything before it is built.
+The result is in `dist/`. Your progress is saved in the browser, on your own machine.
 
-## Design notes
+## How it is made
 
-- **Two currencies.** Dew is earned and spent within a season; Evergreen Tokens are earned by
-  rebirth and kept forever.
-- **A finite world.** Every building has a maximum, so each season eventually hits a wall —
-  that is the cue to rebirth — and the story can actually be completed.
-- **Rendering.** The world is drawn at one pixel per world pixel into an off-screen buffer and
-  scaled up by whole numbers, so pixels stay crisp at every zoom. Shadows are each sprite's own
-  silhouette projected from the sun (or the nearest lamp at night), lighting is a light map
-  multiplied over the scene, and reflections are sprites mirrored into the water. Things that
-  never move have their shadows and reflections cached per island.
-- **Particles** live in typed arrays and are drawn either into a pixel buffer or as batched
-  rectangles, whichever is cheaper for the current view.
-- **Saves** are stored in `localStorage`, sealed with a checksum and range-checked on load.
-  Like any game that runs entirely in the browser, this deters casual tampering rather than
-  making it impossible.
+None of the game's art or sound is stored as a file. Every sprite, every sound and every frame of
+the interface is drawn or synthesised in code when the game starts. It is written in TypeScript,
+with React for the menus and Vite to build it.
+
+Nearly everything about the game, from prices to the shape of the islands to what Claudia says,
+is plain data in `src/config/`. If you would like to change something, the notes in
+[docs/DEVELOPING.md](docs/DEVELOPING.md) say where to look.
+
+## Made by
+
+[Ryhox](https://github.com/Ryhox). The source lives at
+[github.com/Ryhox/little-elsewhere](https://github.com/Ryhox/little-elsewhere).
+
+The game keeps your progress in your own browser and collects nothing; the details are in its
+[privacy note](public/privacy.html).
+
+## License
+
+[MIT](LICENSE)

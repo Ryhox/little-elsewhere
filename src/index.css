@@ -31,6 +31,26 @@ body,
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  cursor: var(--cur-arrow), default;
+}
+
+/* Hand-drawn mouse pointers (painted in src/art/cursors.ts). Anything that can be pressed gets the pointing hand. */
+button:not(:disabled),
+a,
+select,
+label,
+input,
+.cursor-pointer {
+  cursor: var(--cur-point), pointer;
+}
+
+button:not(:disabled):active,
+.cursor-pointer:active {
+  cursor: var(--cur-point-on), pointer;
+}
+
+button:disabled {
+  cursor: var(--cur-arrow), default;
 }
 
 img,
@@ -71,7 +91,6 @@ canvas {
   font-weight: 600;
   line-height: 1.1;
   color: #2b1a16;
-  cursor: pointer;
   white-space: nowrap;
   transition: filter 80ms;
 }
@@ -90,7 +109,6 @@ canvas {
   --skin: var(--skin-btn-off);
   --skin-down: var(--skin-btn-off-down);
   color: #5c5651;
-  cursor: default;
 }
 
 .btn-green {
@@ -202,6 +220,86 @@ canvas {
 
 .anim-shimmer {
   animation: shimmer 1.4s steps(6) infinite;
+}
+
+/* ─────────── The tutorial: what the lesson asks for glows, and an arrow points at it ─────────── */
+
+@keyframes guide-pulse {
+  0%,
+  100% {
+    outline-color: #f2bc36;
+    filter: brightness(1);
+  }
+  50% {
+    outline-color: #fffbd2;
+    filter: brightness(1.12);
+  }
+}
+
+@keyframes guide-nudge-right {
+  0%,
+  100% {
+    transform: translateY(-50%) rotate(-90deg) translateY(0);
+  }
+  50% {
+    transform: translateY(-50%) rotate(-90deg) translateY(6px);
+  }
+}
+
+@keyframes guide-nudge-down {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(6px);
+  }
+}
+
+.guide-wanted {
+  outline: 4px solid #f2bc36;
+  outline-offset: -2px;
+  animation: guide-pulse 0.9s steps(4) infinite;
+}
+
+.guide-arrow-right {
+  animation: guide-nudge-right 0.6s steps(4) infinite;
+}
+
+.guide-arrow-down {
+  animation: guide-nudge-down 0.6s steps(4) infinite;
+}
+
+.guide-tag {
+  padding: 0 6px;
+  border: 2px solid #4e2c20;
+  background: #f2bc36;
+  color: #2b1a16;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* The frame her portrait stands in: a soft sky behind her. */
+.guide-stage {
+  background: linear-gradient(#bfe0ff, #fff7e2);
+  background-clip: padding-box;
+}
+
+.guide-talk {
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-wanted,
+  .guide-arrow-right,
+  .guide-arrow-down {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

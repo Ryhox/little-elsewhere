@@ -30,18 +30,6 @@ export function meetsOne(s: GameState, req: Requirement): boolean {
 
 export const meets = (s: GameState, reqs: readonly Requirement[]) => reqs.every((r) => meetsOne(s, r));
 
-/** Human-readable form of a requirement, for locked items. */
-export function describeReq(req: Requirement): string {
-  if (req.building) return `Own ${req.building[1]} ${BUILDING_BY_ID[req.building[0]].name}${req.building[1] === 1 ? '' : 's'}`;
-  if (req.region) return `Discover a new land`;
-  if (req.upgrade) return `Requires ${UPGRADE_BY_ID[req.upgrade]?.name ?? 'another upgrade'}`;
-  if (req.perm) return `Requires ${PERM_BY_ID[req.perm]?.name ?? 'an Evergreen upgrade'}`;
-  if (req.seasons !== undefined) return `Turn ${req.seasons} season${req.seasons === 1 ? '' : 's'}`;
-  if (req.buildings !== undefined) return `Own ${req.buildings} buildings`;
-  if (req.earned) return `Earn more ${req.earned[0]} this season`;
-  return '';
-}
-
 /* ───────────────────────────── Modifiers ───────────────────────────── */
 
 /** Rebuild the modifier sheet from everything the player owns. Pure: depends only on the save. */
@@ -259,10 +247,6 @@ export function gain(s: GameState, res: Res, amount: number): void {
   s.res[res] = Math.min(BALANCE.maxNumber, s.res[res] + amount);
   s.earned[res] = Math.min(BALANCE.maxNumber, s.earned[res] + amount);
   s.life[res] = Math.min(BALANCE.maxNumber, s.life[res] + amount);
-}
-
-export function gainAll(s: GameState, gains: Cost): void {
-  for (const res in gains) gain(s, res as Res, gains[res as Res]!);
 }
 
 /** Recompute everything derived from the save. */

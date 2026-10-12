@@ -1,21 +1,14 @@
 import { rt } from '@/app/runtime';
 import { ABILITIES, BUFF_INFO } from '@/config/abilities';
 import { BALANCE } from '@/config/balance';
-import { GUIDE, GUIDE_STAT } from '@/config/guide';
 import { EVERGREEN, RESOURCES } from '@/config/resources';
 import { abilityUnlocked, castAbility } from '@/game/actions';
 import { fmt, fmtMult, fmtRate, fmtTime } from '@/game/format';
 import { canTurnSeason, tokensOnTurn } from '@/game/prestige';
-import { guideStep } from '@/game/progress';
 import { useUI } from '@/store/ui';
 import { describeGlobal, describeSpring } from './describe';
+import { GuideCard } from './Guide';
 import { Btn, Icon, tip, useTick } from './widgets';
-
-/** Has the player reached the point where Evergreen Tokens mean something? */
-const knowsEvergreen = () => {
-  const { s, mods } = rt().game;
-  return s.seasons > 0 || s.tokens > 0 || !!mods.flags.sundial;
-};
 
 /** The two currencies, stacked: Dew on top, Evergreen Tokens right under it. */
 function Purse() {
@@ -31,16 +24,14 @@ function Purse() {
           <div className="text-sm text-[#8fe8ff]">+{fmtRate(rates.res.dew)} per second</div>
         </div>
       </div>
-      {knowsEvergreen() && (
-        <div className="skin-plaque flex min-w-[168px] items-center gap-2" {...tip(() => ({ title: EVERGREEN.name, lines: [EVERGREEN.blurb, `Turning the season now would give +${fmt(tokensOnTurn(game))}.`] }))}>
-          <Icon name={EVERGREEN.icon} size={34} />
-          <div className="leading-none">
-            <div className="text-xs font-bold tracking-wide opacity-80">EVERGREEN TOKENS</div>
-            <div className="text-shadow text-2xl font-bold">{fmt(s.tokens)}</div>
-            <div className="text-sm text-[#c2ea78]">+{fmt(tokensOnTurn(game))} if you rebirth</div>
-          </div>
+      <div className="skin-plaque flex min-w-[168px] items-center gap-2" {...tip(() => ({ title: EVERGREEN.name, lines: [EVERGREEN.blurb, `Turning the season now would give +${fmt(tokensOnTurn(game))}.`] }))}>
+        <Icon name={EVERGREEN.icon} size={34} />
+        <div className="leading-none">
+          <div className="text-xs font-bold tracking-wide opacity-80">EVERGREEN TOKENS</div>
+          <div className="text-shadow text-2xl font-bold">{fmt(s.tokens)}</div>
+          <div className="text-sm text-[#c2ea78]">+{fmt(tokensOnTurn(game))} if you rebirth</div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -73,35 +64,6 @@ function Clock() {
           </span>
         </div>
       ))}
-    </div>
-  );
-}
-
-/** The tutorial: one small goal at a time, with a way to switch it off. */
-function GuideCard() {
-  const { game } = rt();
-  const step = guideStep(game.s);
-  if (!step) return null;
-  const index = game.s.stats[GUIDE_STAT.step] ?? 0;
-  return (
-    <div className="skin-panel pointer-events-auto w-[300px] max-w-full">
-      <div className="flex items-center justify-between gap-2 text-xs font-bold tracking-wide text-ink-soft uppercase">
-        <span>
-          Guide · {index + 1} of {GUIDE.length}
-        </span>
-        <button
-          type="button"
-          className="cursor-pointer underline"
-          onClick={() => {
-            game.s.stats[GUIDE_STAT.hidden] = 1;
-            useUI.getState().bump();
-          }}
-        >
-          hide
-        </button>
-      </div>
-      <div className="text-lg leading-tight font-bold">{step.title}</div>
-      <div className="text-sm leading-snug">{step.text}</div>
     </div>
   );
 }
@@ -156,9 +118,10 @@ function Abilities() {
 function Rebirth() {
   const { game } = rt();
   const setModal = useUI((s) => s.setModal);
-  if (!knowsEvergreen()) return null;
   const ready = canTurnSeason(game);
   const gain = tokensOnTurn(game);
+  const learned = !!game.mods.flags.sundial || game.s.seasons > 0;
+  const hint = ready ? `Turn the season: +${fmt(gain)}` : learned ? 'Gather more dew first' : 'Raise the Sundial first';
   return (
     <div className="pointer-events-auto flex items-stretch gap-1">
       <Btn tone="gold" disabled={!ready} className={`text-left ${ready ? 'anim-shimmer' : ''}`} onClick={() => setModal({ kind: 'turn' })}>
@@ -166,7 +129,7 @@ function Rebirth() {
           <Icon name="ic_season" size={26} />
           <span>
             <span className="block text-base">Rebirth</span>
-            <span className="block text-xs font-normal">{ready ? `Turn the season: +${fmt(gain)}` : 'Raise the Sundial first'}</span>
+            <span className="block text-xs font-normal">{hint}</span>
           </span>
         </span>
       </Btn>
@@ -188,9 +151,12 @@ export function Hud() {
   useTick();
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-2 pb-16 md:pb-2">
-      <div className="flex flex-col items-start gap-1">
-        <Purse />
-        <Clock />
+      {/* On a wide screen the lesson card sits beside the purse, over open sea, instead of over the islands. */}
+      <div className="flex flex-col items-start gap-1 xl:flex-row xl:gap-2">
+        <div className="flex flex-col items-start gap-1">
+          <Purse />
+          <Clock />
+        </div>
         <GuideCard />
       </div>
       <div className="flex flex-col items-start gap-1">

@@ -321,9 +321,9 @@ export interface Rates {
   res: Record<Res, number>;
   /** Per-building output per second (in its own resource). */
   b: Record<BuildingId, number>;
-  /** 0..1 — how dark it is. */
+  /** 0..1: how dark it is. */
   night: number;
-  /** 0..1 — how even the four building categories are. */
+  /** 0..1: how even the four building categories are. */
   balance: number;
   /** What Harmony is currently adding to all income (0.5 = +50%). */
   harmony: number;

@@ -4,7 +4,7 @@ import { BUILDINGS } from '@/config/buildings';
 import { abilityReady, availableUpgrades, buyBuilding, buyRegion, buyUpgrade, castAbility, discoverableRegions, regionCost, syncHelpers, upgradeCost } from './actions';
 import type { Game } from './context';
 import { buildingCost, costShare, maxAffordable } from './economy';
-import { canTurnSeason, tokensOnTurn, turnSeason } from './prestige';
+import { canTurnSeason, tokensOnTurn } from './prestige';
 import type { HelperRule } from './types';
 
 /** Tinkers (programmable helpers), self-casting abilities and the Season Clock. */
@@ -67,9 +67,4 @@ export function tickAutomation(game: Game, dt: number): void {
 export function seasonClockDue(game: Game): boolean {
   const { s, mods: m } = game;
   return !!m.flags.autoSeason && s.autoSeason.on && canTurnSeason(game) && tokensOnTurn(game) >= s.autoSeason.minTokens;
-}
-
-/** Turn the season on the clock's behalf (used when no cutscene is wanted). */
-export function runSeasonClock(game: Game): number {
-  return seasonClockDue(game) ? turnSeason(game) : 0;
 }

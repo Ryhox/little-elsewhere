@@ -11,7 +11,7 @@ const ACTS = { winter: 0.35, whiteout: 0.6, turn: 0.72, thaw: 0.84 } as const;
  */
 export class Cutscene {
   active = false;
-  /** 0..1 — how far the screen has faded to white. */
+  /** 0..1: how far the screen has faded to white. */
   white = 0;
   private t = 0;
   private duration = 1;

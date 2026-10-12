@@ -1,4 +1,4 @@
-import { BUILDING_LOOKS, ELDER, LAYOUT_BY_ID, WORLD, type LinkDef, type Point, type ScatterDef, type Zone } from '@/config/world';
+import { BUILDING_LOOKS, ELDER, WORLD, type LinkDef, type Point, type ScatterDef, type Zone } from '@/config/world';
 import type { Atlas } from '@/engine/atlas';
 import { mulberry, seedOf, type Rand } from '@/engine/rng';
 import { framesOf, makeEntity, type Entity } from './entity';
@@ -7,7 +7,7 @@ import { LAND, PATH, POND, SEA, shoreBelow, terrainAt, type Terrain } from './te
 /** Everything standing on one land. */
 export interface RegionView {
   terrain: Terrain;
-  /** Trees, rocks, flowers, props — never change after the land is built. */
+  /** Trees, rocks, flowers, props: never change after the land is built. */
   decor: Entity[];
   /** Building id → the copies currently standing. */
   buildings: Map<string, Entity[]>;
@@ -55,7 +55,7 @@ const ZONES: Record<Zone, (t: Terrain, x: number, y: number) => boolean> = {
 /**
  * The world y at which a thing's feet appear in its reflection, or NaN when it stands too far
  * from any water to show in it. Things afloat mirror about their own feet. Land sits a cliff's
- * height above the sea, so things on land mirror that much lower — and the land itself then
+ * height above the sea, so things on land mirror that much lower, and the land itself then
  * hides whatever part of the reflection would fall behind the bank.
  */
 export function waterlineFor(t: Terrain, x: number, y: number): number {
@@ -170,5 +170,3 @@ export const bridgeEnds = (bridge: Bridge): [Point, Point] => [
   [bridge.x0, bridge.y0],
   [bridge.x1, bridge.y1],
 ];
-
-export const layoutOf = (id: string) => LAYOUT_BY_ID[id];

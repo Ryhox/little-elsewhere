@@ -38,7 +38,7 @@ export function describeBuilding(game: Game, def: BuildingDef): string[] {
   if (def.base && owned > 0) {
     const total = rates.b[def.id] ?? 0;
     const share = rates.res.dew > 0 ? total / rates.res.dew : 0;
-    lines.push(`Together they gather ${fmtRate(total)} dew/s — ${fmtPct(share)} of your income.`);
+    lines.push(`Together they gather ${fmtRate(total)} dew/s, ${fmtPct(share)} of your income.`);
   }
   lines.push(`You own ${owned} of ${def.max}.`);
 

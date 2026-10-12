@@ -1,8 +1,8 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { rt } from '@/app/runtime';
-import { EVERGREEN, RESOURCES } from '@/config/resources';
+import { RESOURCES } from '@/config/resources';
 import { fmt } from '@/game/format';
-import { RES, type Cost, type Res } from '@/game/types';
+import { RES, type Cost } from '@/game/types';
 import { useUI, type Tip } from '@/store/ui';
 
 /** Re-render with the live game a few times a second. */
@@ -33,15 +33,6 @@ export function CostLine({ cost, check = true, className = '' }: { cost: Cost; c
           {fmt(cost[r]!)}
         </span>
       ))}
-    </span>
-  );
-}
-
-export function TokenCost({ amount, have }: { amount: number; have: number }) {
-  return (
-    <span className={`inline-flex items-center gap-0.5 ${have < amount ? 'text-rose' : ''}`}>
-      <Icon name={EVERGREEN.icon} size={16} />
-      {fmt(amount)}
     </span>
   );
 }
@@ -108,5 +99,3 @@ export function SectionTitle({ children, right }: { children: ReactNode; right?:
     </div>
   );
 }
-
-export const resName = (r: Res) => RESOURCES[r].name;

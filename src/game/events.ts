@@ -74,13 +74,13 @@ function award(game: Game, source: string, dew: number, note: string, withExtras
     const first = REWARDS.firstSeedGuaranteed && source === 'treasure' && !s.stats.seedsFound && s.regions.garden;
     if (first || game.rand() < REWARDS.seedChance * m.seedRate * (1 + m.luck * 0.5)) {
       foundSeed(game);
-      text += ' — and a mysterious seed!';
+      text += ', and a mysterious seed!';
     }
     if (m.shard > 0 && game.rand() < m.shard * (1 + m.luck * 0.5)) {
       tokens = Math.max(1, Math.floor(tokensOnTurn(game) * JACKPOT_SHARE));
       s.tokens += tokens;
       s.tokensEarned += tokens;
-      text += ` — and ${tokens} Evergreen Token${tokens === 1 ? '' : 's'}!`;
+      text += `, and ${tokens} Evergreen Token${tokens === 1 ? '' : 's'}!`;
     }
   }
   game.bus.emit('reward', { source, text, gains: dew > 0 ? { dew } : {}, tokens });

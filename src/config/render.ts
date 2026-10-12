@@ -1,6 +1,6 @@
 import { PAL } from './palette';
 
-/** Everything that shapes how the world is drawn. Tweak freely — none of this affects the simulation. */
+/** Everything that shapes how the world is drawn. Tweak freely: none of this affects the simulation. */
 export const RENDER = {
   camera: {
     minZoom: 1,
@@ -71,7 +71,9 @@ export const RENDER = {
     lampAlpha: 0.3,
     /** Shadow length as a multiple of the caster's height: at noon, and at dawn/dusk. */
     noonLength: 0.42,
-    lowLength: 1.5,
+    lowLength: 1.2,
+    /** The sun's bearing at dawn and dusk, in radians off due west/east. Smaller = flatter, more sideways shadows. */
+    lowAngle: 0.45,
     /** How flat shadows lie (vertical squash of the ground plane). */
     groundSquash: 0.55,
     /** Contact shadow: each silhouette pressed flat under its feet, as a fraction of its height. */
@@ -99,6 +101,12 @@ export const RENDER = {
     /** Distance from shore (px) where the shallows and the mid-water end. */
     shallow: 14,
     mid: 40,
+    /**
+     * Darker deeps mottle the open sea. They come from a noise texture that repeats every
+     * `cells` × `cell` px, so the sea carries on unbroken however far the view reaches.
+     * `level` (0..1) is how much of the sea stays ordinary depth: higher = fewer dark patches.
+     */
+    deeps: { cell: 96, cells: 8, level: 0.6 },
     colors: { deep: PAL.water[1], mid: PAL.water[2], shallow: PAL.water[3], foam: PAL.water[5], crest: PAL.water[4], trough: PAL.water[0] },
     /** Animated wave texture. */
     tile: 96,
@@ -141,6 +149,27 @@ export const RENDER = {
    * whole view, so a busy world stays readable.
    */
   income: { perSecond: 2.5, seconds: 2 },
+
+  /** Mouse pointers: how long one keeps its "doing it" look after a click that did something. */
+  cursor: { pulseSeconds: 0.18 },
+
+  /** How the hands-on toys look (what they are worth lives in BALANCE.play). */
+  play: {
+    /** The rain cloud floats this high above the ground it waters, bobbing by `cloudBob` px. */
+    cloudLift: 30,
+    cloudBob: 1.5,
+    /** Where a new cloud waits, relative to the spring. */
+    cloudHome: [46, -26] as [number, number],
+    /** Raindrops per second at full particle density, falling across this width. */
+    rainPerSecond: 60,
+    rainWidth: 22,
+    /** How often the watered share of each building is measured for the economy. */
+    waterCheckSeconds: 0.3,
+    /** Plants shorter than this many pixels are too small to shake. */
+    shakeableHeight: 12,
+    /** Chance per second that a waiting dewdrop glints. */
+    dropSparkle: 0.9,
+  },
 
   /** Maximum particles alive at once. */
   particleCapacity: 12000,

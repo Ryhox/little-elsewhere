@@ -5,7 +5,7 @@ import { BEEFOLK, BUILDING_BY_ID, FLOWERS, NIGHTFOLK } from './buildings';
 import { REGION_BY_ID } from './regions';
 
 /**
- * Seasonal upgrades — bought with Dew, reset when the season turns.
+ * Seasonal upgrades: bought with Dew, reset when the season turns.
  * Effects are plain data (see game/effects.ts), so adding one never needs new code.
  *
  * Prices are written relative to the thing an upgrade belongs to, so re-balancing a
@@ -157,8 +157,8 @@ const WORLD: UpgradeDef[] = [
     id: 'w_everbloom',
     name: 'The Everbloom',
     cat: 'world',
-    desc: 'Wake the Elder Tree into full bloom. The heart of Little Elsewhere opens — the end of the story, though not of the world.',
-    cost: forLand('heartwood', 400),
+    desc: 'Wake the Elder Tree into full bloom. The heart of Little Elsewhere opens: the end of the story, though not of the world.',
+    cost: forLand('heartwood', 8),
     req: [{ region: 'heartwood' }, { building: ['shrine', 5] }],
     effects: [flag('everbloom'), mul('all', 2)],
     icon: 'elder_bloom',

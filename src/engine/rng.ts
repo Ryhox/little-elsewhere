@@ -2,7 +2,7 @@
 
 export type Rand = () => number;
 
-/** Mulberry32 — small, fast, good enough for art and layout. */
+/** Mulberry32: small, fast, good enough for art and layout. */
 export function mulberry(seed: number): Rand {
   let a = seed >>> 0;
   return () => {
@@ -21,18 +21,23 @@ export function hash2(x: number, y: number, seed = 0): number {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-/** Smooth value noise in [0, 1). */
-export function vnoise(x: number, y: number, seed = 0): number {
+/** Smooth value noise in [0, 1). With a `period` (in whole units) it repeats seamlessly, for tiling textures. */
+export function vnoise(x: number, y: number, seed = 0, period = 0): number {
   const xi = Math.floor(x);
   const yi = Math.floor(y);
   const fx = x - xi;
   const fy = y - yi;
   const u = fx * fx * (3 - 2 * fx);
   const v = fy * fy * (3 - 2 * fy);
-  const a = hash2(xi, yi, seed);
-  const b = hash2(xi + 1, yi, seed);
-  const c = hash2(xi, yi + 1, seed);
-  const d = hash2(xi + 1, yi + 1, seed);
+  const wrap = (i: number) => (period ? ((i % period) + period) % period : i);
+  const x0 = wrap(xi);
+  const x1 = wrap(xi + 1);
+  const y0 = wrap(yi);
+  const y1 = wrap(yi + 1);
+  const a = hash2(x0, y0, seed);
+  const b = hash2(x1, y0, seed);
+  const c = hash2(x0, y1, seed);
+  const d = hash2(x1, y1, seed);
   return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
 }
 

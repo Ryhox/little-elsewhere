@@ -20,7 +20,8 @@ function nodeTip(def: PermDef) {
   const missing = def.needs.filter((n) => !game.s.perm[n]).map((n) => PERM_BY_ID[n].name);
   if (missing.length) lines.push(`Requires ${missing.join(' and ')}.`);
   if ((def.seasons ?? 0) > game.s.seasons) lines.push(`Requires ${def.seasons} seasons turned (you have ${game.s.seasons}).`);
-  if (level < def.max) lines.push(`Cost: ${fmt(permCost(game, def.id))} Evergreen Tokens`);
+  const cost = permCost(game, def.id);
+  if (level < def.max) lines.push(`Cost: ${fmt(cost)} ${cost === 1 ? EVERGREEN.one : EVERGREEN.name}`);
   return { title: def.name, lines };
 }
 
@@ -110,7 +111,7 @@ export function EvergreenTree() {
   );
 }
 
-/** The star chart: permanent gifts bought with Starlight. */
+/** The star chart: permanent gifts from the night sky, bought with Dew. */
 export function Constellations() {
   useTick();
   const { game } = rt();

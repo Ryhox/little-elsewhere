@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { rt } from '@/app/runtime';
 import { ACHIEVEMENTS } from '@/config/achievements';
+import { GUIDE_ENDING, GUIDE_WELCOME } from '@/config/guide';
+import { SITE } from '@/config/site';
 import { EVERGREEN, RESOURCES } from '@/config/resources';
 import { BLESSING_BY_ID } from '@/config/seasons';
 import { chooseBlessing } from '@/game/actions';
@@ -10,13 +12,15 @@ import { fmt, fmtTime } from '@/game/format';
 import { tokenBreakdown } from '@/game/prestige';
 import { RES } from '@/game/types';
 import { useUI } from '@/store/ui';
+import { TeacherSays } from './Guide';
 import { Constellations, EvergreenTree } from './Tree';
 import { Btn, CostLine, Icon, useTick } from './widgets';
 
-function Frame({ title, children, wide, onClose }: { title: string; children: ReactNode; wide?: boolean; onClose?: () => void }) {
+/** A dialog. `wide` is for the big boards; `talk` makes room for Claudia and what she says. */
+function Frame({ title, children, wide, talk, onClose }: { title: string; children: ReactNode; wide?: boolean; talk?: boolean; onClose?: () => void }) {
   return (
     <div className="absolute inset-0 z-30 grid place-items-center bg-[#161a3c]/55 p-3" onPointerDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className={`skin-panel anim-pop flex max-h-full w-full flex-col ${wide ? 'max-w-[960px]' : 'max-w-[460px]'}`}>
+      <div className={`skin-panel anim-pop flex max-h-full w-full flex-col ${wide ? 'max-w-[960px]' : talk ? 'max-w-[640px]' : 'max-w-[460px]'}`}>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="text-2xl leading-none font-bold">{title}</h2>
           {onClose && (
@@ -70,11 +74,11 @@ function TurnedModal({ tokens, close }: { tokens: number; close(): void }) {
   const { game } = rt();
   const setModal = useUI((s) => s.setModal);
   return (
-    <Frame title={`Spring again — season ${game.s.seasons + 1}`}>
+    <Frame title={`Spring again: season ${game.s.seasons + 1}`}>
       <div className="flex flex-col items-center gap-2 text-center">
         <Icon name={EVERGREEN.icon} size={56} />
         <div className="text-3xl font-bold">+{fmt(tokens)}</div>
-        <div className="leading-snug">Evergreen Tokens earned. Grow something permanent with them on the Evergreen tree — it will make this season quicker than the last.</div>
+        <div className="leading-snug">Evergreen Tokens earned. Grow something permanent with them on the Evergreen tree. It will make this season quicker than the last.</div>
         <div className="flex w-full gap-2">
           <Btn className="flex-1" onClick={close}>
             Begin
@@ -88,22 +92,25 @@ function TurnedModal({ tokens, close }: { tokens: number; close(): void }) {
   );
 }
 
+/** Claudia welcomes the player back and tells them what the world gathered while they were away. */
 function OfflineModal({ seconds, gained, close }: { seconds: number; gained: Record<string, number>; close(): void }) {
   const rows = RES.filter((r) => gained[r] > 0);
+  const words = (rows.length ? GUIDE_WELCOME.busy : GUIDE_WELCOME.quiet)(fmtTime(seconds));
   return (
-    <Frame title="Welcome back">
+    <Frame title="Welcome back" talk>
       <div className="flex flex-col gap-2">
-        <div className="leading-snug">Your little world kept busy for {fmtTime(seconds)} while you were away.</div>
-        <div className="skin-slot flex flex-col gap-0.5">
-          {rows.length === 0 && <span className="text-ink-soft">Not much happened. It was a quiet time.</span>}
-          {rows.map((r) => (
-            <span key={r} className="flex items-center gap-2 text-lg">
-              <Icon name={RESOURCES[r].icon} size={22} />
-              <span className="flex-1">{RESOURCES[r].name}</span>
-              <b>+{fmt(gained[r])}</b>
-            </span>
-          ))}
-        </div>
+        <TeacherSays anim={GUIDE_WELCOME.gesture} words={words} />
+        {rows.length > 0 && (
+          <div className="skin-slot flex flex-col gap-0.5">
+            {rows.map((r) => (
+              <span key={r} className="flex items-center gap-2 text-lg">
+                <Icon name={RESOURCES[r].icon} size={22} />
+                <span className="flex-1">{RESOURCES[r].name}</span>
+                <b>+{fmt(gained[r])}</b>
+              </span>
+            ))}
+          </div>
+        )}
         <Btn tone="green" onClick={close}>
           Lovely
         </Btn>
@@ -177,7 +184,7 @@ function BlessingModal({ close }: { close(): void }) {
   );
 }
 
-/** The closing words, shown once the Elder Tree has bloomed. Play carries on afterwards. */
+/** The closing words, spoken by Claudia once the Elder Tree has bloomed. Play carries on afterwards. */
 function EndingModal({ close }: { close(): void }) {
   const { s } = rt().game;
   const rows: [string, string][] = [
@@ -188,20 +195,27 @@ function EndingModal({ close }: { close(): void }) {
     ['Achievements', `${Object.keys(s.ach).length} / ${ACHIEVEMENTS.length}`],
   ];
   return (
-    <Frame title="The Everbloom">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Icon name="elder_bloom" size={150} />
-        <div className="text-lg leading-snug font-bold">The Elder Tree is in full bloom.</div>
-        <div className="leading-snug">From one small spring you grew a whole world, season after season — and now its heart has opened. Little Elsewhere is as it was always meant to be. Thank you for tending it.</div>
-        <div className="skin-slot grid w-full grid-cols-2 gap-x-3 text-left">
-          {rows.map(([label, value]) => (
-            <span key={label} className="contents">
-              <span>{label}</span>
-              <span className="text-right font-bold">{value}</span>
-            </span>
-          ))}
+    <Frame title="The Everbloom" talk>
+      <div className="flex flex-col gap-2">
+        <TeacherSays anim={GUIDE_ENDING[0]} words={GUIDE_ENDING[1]} />
+        <div className="flex items-center gap-3">
+          <Icon name="elder_bloom" size={96} />
+          <div className="skin-slot grid flex-1 grid-cols-[1fr_auto] gap-x-3">
+            {rows.map(([label, value]) => (
+              <span key={label} className="contents">
+                <span>{label}</span>
+                <span className="text-right font-bold">{value}</span>
+              </span>
+            ))}
+          </div>
         </div>
-        <div className="text-sm leading-snug text-ink-soft">The story ends here, but the world does not. Stay as long as you like — there are still secrets, constellations and the Evergreen Shoals to find.</div>
+        <div className="text-center text-sm leading-snug text-ink-soft">The story ends here, but the world does not. Stay as long as you like. There are still secrets, constellations and the Evergreen Shoals to find.</div>
+        <div className="text-center font-bold">
+          {SITE.name}, by{' '}
+          <a className="underline" href={SITE.github} target="_blank" rel="noreferrer">
+            {SITE.author}
+          </a>
+        </div>
         <Btn tone="green" className="w-full text-lg" onClick={close}>
           Keep tending the world
         </Btn>

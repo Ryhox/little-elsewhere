@@ -4,13 +4,13 @@ import { PERMS } from '@/config/evergreen';
 import { availableUpgrades, discoverableRegions, permAvailable, permCost, regionCost, upgradeCost } from '@/game/actions';
 import { canAfford } from '@/game/economy';
 import { canTurnSeason } from '@/game/prestige';
-import { guideStep } from '@/game/progress';
 import { useUI, type PanelId } from '@/store/ui';
+import { describeWant, GuideArrow, useGuide } from './Guide';
 import { JournalTab, TrophiesTab } from './tabs/Collections';
 import { SeasonTab } from './tabs/Season';
 import { BuildTab, UpgradesTab } from './tabs/Shop';
 import { HelpersTab, SettingsTab } from './tabs/System';
-import { Icon, tip, useTick } from './widgets';
+import { Icon, tip } from './widgets';
 
 interface TabDef {
   id: PanelId;
@@ -59,27 +59,27 @@ const TABS: TabDef[] = [
 
 /** The menu: a strip of labelled tabs and, when open, the panel for the chosen one. Sits on the right on wide screens and along the bottom on narrow ones. */
 export function SidePanel() {
-  useTick();
+  const { game, want } = useGuide();
   const panel = useUI((s) => s.panel);
   const open = useUI((s) => s.panelOpen);
   const setPanel = useUI((s) => s.setPanel);
   const tabs = TABS.filter((t) => !t.when || t.when());
   const current = tabs.find((t) => t.id === panel) ?? tabs[0];
-  const pointed = guideStep(rt().game.s)?.point;
+  // The tab that holds whatever the lesson asks for.
+  const pointed = want ? describeWant(game, want).panel : null;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col md:inset-y-0 md:right-0 md:left-auto md:flex-row md:p-2">
       <div className="pointer-events-auto flex justify-center gap-1 px-1 md:flex-col md:justify-start md:px-0 md:pt-1 md:pr-1">
         {tabs.map((t) => {
           const active = open && t.id === current.id;
-          // The guide points at a tab until the player has it open.
+          // The lesson points at a tab until the player has it open.
           const guided = pointed === t.id && !active;
           return (
             <button
               key={t.id}
               type="button"
-              className={`relative flex h-[58px] w-[62px] cursor-pointer flex-col items-center justify-center ${active ? 'skin-slot-lit text-ink' : 'skin-plaque'} ${guided ? 'anim-shimmer' : ''} hover:brightness-110`}
-              style={{ outline: guided ? '3px solid #f2bc36' : undefined }}
+              className={`relative flex h-[58px] w-[62px] flex-col items-center justify-center ${active ? 'skin-slot-lit text-ink' : 'skin-plaque'} ${guided ? 'guide-wanted' : ''} hover:brightness-110`}
               {...tip(() => ({ title: t.label, lines: [t.about] }))}
               onClick={() => {
                 rt().sound.unlock();
@@ -87,6 +87,8 @@ export function SidePanel() {
                 setPanel(t.id);
               }}
             >
+              {guided && <GuideArrow to="down" className="-top-7 left-1/2 md:hidden" />}
+              {guided && <GuideArrow to="right" className="top-1/2 -left-8 hidden md:block" />}
               <Icon name={t.icon} size={24} />
               <span className="text-[11px] leading-none font-bold">{t.label}</span>
               {!active && t.nudge?.() && <span className="anim-shimmer absolute -top-1 -right-1 h-3 w-3 border-2 border-[#241a2e] bg-gold" />}

@@ -3,7 +3,7 @@ import { PAL } from './palette';
 
 /**
  * Every kind of particle in the game, as data. To add an effect, describe a kind here
- * and (optionally) a named burst below — no engine changes needed.
+ * and (optionally) a named burst below: no engine changes needed.
  */
 export const PARTICLES: Record<string, ParticleKind> = {
   /* Water */

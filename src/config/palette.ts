@@ -61,9 +61,10 @@ export const PAL = {
   copper: [0x5e2e1c, 0x8f4a26, 0xc0703a, 0xe29c5c, 0xf6cc92],
   crystal: [0x2f3f9c, 0x4c6fdc, 0x79a8f6, 0xb4dcff, 0xf0faff],
   ember: [0x8f2a12, 0xd4541a, 0xf6922a, 0xffd25a, 0xfff6c2],
+  skin: [0xb9735a, 0xe5a488, 0xf9cdb0, 0xffe6d3],
+  blonde: [0x8f6a30, 0xc49b52, 0xe6c880, 0xf6e2ab, 0xfff6da],
+  honey: [0x9a6a1e, 0xcf9c36, 0xefc75a, 0xfbe38c, 0xfff6cc],
 } as const satisfies Record<string, number | Ramp>;
-
-export type RampName = { [K in keyof typeof PAL]: (typeof PAL)[K] extends number ? never : K }[keyof typeof PAL];
 
 /** Foliage ramps per season: [lush, autumn, winter]. Autumn picks one by seed for variety. */
 export const AUTUMN_FOLIAGE: readonly Ramp[] = [PAL.autumnOrange, PAL.autumnRed, PAL.autumnPlum, PAL.autumnGold];

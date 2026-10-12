@@ -7,14 +7,13 @@ import { castAbility } from '@/game/actions';
 import { useUI } from '@/store/ui';
 import { describeBuilding, describeSpring } from './describe';
 import { GameCanvas } from './GameCanvas';
+import { GuideLayer } from './Guide';
 import { Hud } from './Hud';
+import { freeArea } from './layout';
 import { Modals } from './Modals';
 import { Tooltip, Toasts } from './Overlays';
 import { SidePanel } from './SidePanel';
 import { Btn, Icon } from './widgets';
-
-/** Space the menus take from the world view, so the camera can centre on what is actually visible. */
-const LAYOUT = { wide: 768, panel: 396, tabs: 70, sheet: 0.44, top: 96, bar: 64 };
 
 /** Keep the camera's idea of the free screen area in step with the menus. */
 function useCameraInsets(ready: boolean) {
@@ -22,16 +21,7 @@ function useCameraInsets(ready: boolean) {
   const zen = useUI((s) => s.zen);
   useEffect(() => {
     if (!ready) return;
-    const apply = () => {
-      if (zen) return rt().setInsets({ left: 0, right: 0, top: 0, bottom: 0 });
-      const wide = window.innerWidth >= LAYOUT.wide;
-      rt().setInsets({
-        left: 0,
-        right: wide ? (open ? LAYOUT.panel + LAYOUT.tabs : LAYOUT.tabs) : 0,
-        top: LAYOUT.top,
-        bottom: wide ? 0 : open ? window.innerHeight * LAYOUT.sheet + LAYOUT.bar : LAYOUT.bar,
-      });
-    };
+    const apply = () => rt().setInsets(zen ? { left: 0, right: 0, top: 0, bottom: 0 } : freeArea(open));
     apply();
     window.addEventListener('resize', apply);
     return () => window.removeEventListener('resize', apply);
@@ -124,6 +114,7 @@ export function App() {
         <>
           {!zen && <Hud />}
           {!zen && <SidePanel />}
+          {!zen && <GuideLayer />}
           <Corner />
           <Toasts />
           <Modals />

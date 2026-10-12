@@ -110,7 +110,11 @@ export function bakeShadows(bake: Bake, view: RegionView, atlas: Atlas, flags: R
     }
     castShadow(ctx, atlas, currentSprite(e, season), e.x - ox, e.y - oy, sx, sy, e.flip);
   });
+  // A shadow lies on the ground: whatever would reach past the shore is cut off instead of streaking over the sea.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(view.terrain.patches[season.blend > 0.5 ? season.b : season.a], SHADE_MARGIN, SHADE_MARGIN);
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 /** Redraw a land's static reflections: its mirrored shoreline plus everything standing near water, with the land itself cut out. */

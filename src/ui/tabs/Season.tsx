@@ -13,7 +13,7 @@ import { Bar, Btn, Icon, SectionTitle, tip, useTick } from '../widgets';
 const CAT_COLORS: Record<string, string> = { flora: '#52ae35', fauna: '#f08aa0', craft: '#c48748', mystic: '#8872bb' };
 const CAT_LABELS: Record<string, string> = { flora: 'Plants', fauna: 'Creatures', craft: 'Crafts', mystic: 'Magic' };
 
-/** How many buildings of each kind the player owns — the thing Harmony wants kept even. */
+/** How many buildings of each kind the player owns: the thing Harmony wants kept even. */
 function BalanceMeter() {
   const { game } = rt();
   const totals = Object.fromEntries(CATS.map((c) => [c, 0])) as Record<string, number>;
@@ -66,7 +66,7 @@ export function SeasonTab() {
       <SectionTitle>Rebirth: turning the season</SectionTitle>
       {locked ? (
         <div className="skin-slot text-sm leading-snug">
-          Seasons cannot turn yet. Reach the <b>Hearthside Hamlet</b> and raise the <b>Season Sundial</b> — then you can end the season, keep Evergreen Tokens forever, and begin again far stronger.
+          Seasons cannot turn yet. Reach the <b>Hearthside Hamlet</b> and raise the <b>Season Sundial</b>. Then you can end the season, keep Evergreen Tokens forever, and begin again far stronger.
         </div>
       ) : (
         <div className="skin-slot flex flex-col gap-1 text-sm">
@@ -76,7 +76,7 @@ export function SeasonTab() {
               <Icon name={EVERGREEN.icon} size={18} />+{fmt(breakdown.total)}
             </span>
           </div>
-          <div className="flex justify-between text-ink-soft" {...tip(() => ({ title: 'Where tokens come from', lines: ['Dew earned this season gives tokens with diminishing returns: the further you push, the slower they come — so at some point it pays to start over.', 'Discovering lands and growing Wonders add tokens on top.'] }))}>
+          <div className="flex justify-between text-ink-soft" {...tip(() => ({ title: 'Where tokens come from', lines: ['Dew earned this season gives tokens with diminishing returns: the further you push, the slower they come, so at some point it pays to start over.', 'Discovering lands and growing Wonders add tokens on top.'] }))}>
             <span>From dew {fmt(breakdown.fromDew, 1)}</span>
             <span>Milestones {fmt(breakdown.fromMilestones)}</span>
             <span>{fmtMult(breakdown.multiplier)}</span>

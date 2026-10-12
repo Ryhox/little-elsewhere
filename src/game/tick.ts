@@ -3,7 +3,7 @@ import { autoTap } from './actions';
 import { tickAutomation } from './automation';
 import type { Game } from './context';
 import { computeRates, gain, nightFactor, refresh } from './economy';
-import { startEvent, tickEvents, tickPlot } from './events';
+import { tickEvents, tickPlot } from './events';
 import { checkProgress } from './progress';
 import { RES } from './types';
 
@@ -94,6 +94,3 @@ export function fastForward(game: Game, seconds: number): Record<string, number>
   for (const r of RES) gained[r] = Math.max(0, game.s.res[r] - before[r]);
   return gained;
 }
-
-/** Force a specific event now (dev tools and tests). */
-export const triggerEvent = startEvent;

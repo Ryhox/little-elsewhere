@@ -6,9 +6,11 @@ import { paintIcons } from './icons';
 import { snowify } from './kit';
 import { paintLandmarks } from './landmarks';
 import { paintNature } from './nature';
+import { paintSea } from './sea';
+import { paintTeacher } from './teacher';
 
 /** Every sprite generator, in paint order. Add a new module here to extend the game's art. */
-const GENERATORS: ((atlas: Atlas) => void)[] = [paintNature, paintBuildings, paintLandmarks, paintCreatures, paintFx, paintIcons];
+const GENERATORS: ((atlas: Atlas) => void)[] = [paintNature, paintBuildings, paintLandmarks, paintCreatures, paintSea, paintTeacher, paintFx, paintIcons];
 
 let atlas: Atlas | null = null;
 
@@ -21,8 +23,4 @@ export function buildAtlas(): Atlas {
   next.pack();
   atlas = next;
   return next;
-}
-
-export function getAtlas(): Atlas {
-  return atlas ?? buildAtlas();
 }

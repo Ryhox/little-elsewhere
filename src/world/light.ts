@@ -7,9 +7,9 @@ import { lerp } from '@/engine/rng';
 /**
  * The three systems that make the world feel lit rather than painted:
  *
- *  • Lighting    — a light map (ambient colour + every lamp) multiplied over the scene.
- *  • Shadows     — each sprite's own silhouette, projected onto the ground away from the light.
- *  • Reflections — sprites mirrored into the water and rippled.
+ *  • Lighting: a light map (ambient colour + every lamp) multiplied over the scene.
+ *  • Shadows: each sprite's own silhouette, projected onto the ground away from the light.
+ *  • Reflections: sprites mirrored into the water and rippled.
  *
  * All three work on layers the size of the view, so their cost does not grow with the world.
  */
@@ -44,7 +44,7 @@ export function sunState(dayFraction: number, night: number): SunState {
   const d = BALANCE.day;
   const daylight = d.nightStart + 1 - d.nightEnd;
   const p = Math.min(1, Math.max(0, ((dayFraction - d.nightEnd + 1) % 1) / daylight));
-  const angle = lerp(Math.PI - 0.3, 0.3, p);
+  const angle = lerp(Math.PI - s.lowAngle, s.lowAngle, p);
   const length = lerp(s.noonLength, s.lowLength, Math.abs(2 * p - 1) ** 1.6);
   const sunDx = Math.cos(angle) * length;
   const sunDy = Math.sin(angle) * length * s.groundSquash;
@@ -72,7 +72,7 @@ export interface Lamp {
 /**
  * Cast one sprite's shadow onto a canvas. (x, y) is where its feet touch the ground;
  * (dx, dy) is how far a point one pixel above the ground is thrown.
- * Leaves the context's transform changed — reset it when done with a batch.
+ * Leaves the context's transform changed: reset it when done with a batch.
  */
 export function castShadow(ctx: CanvasRenderingContext2D, atlas: Atlas, sprite: Sprite, x: number, y: number, dx: number, dy: number, flip: boolean, lift = 0): void {
   const sx = flip ? sprite.fx : sprite.x;
@@ -149,7 +149,7 @@ export class Reflections {
    * Mirror a sprite in the water plane. `mirrorY` is where its feet appear in the reflection
    * (view pixels): the feet themselves for things afloat, a little lower for things on a bank.
    * Whatever lands over solid ground is cut away afterwards, so only the part that would
-   * really show in the water remains — a tree set back from the shore reflects just its crown.
+   * really show in the water remains: a tree set back from the shore reflects just its crown.
    */
   add(sprite: Sprite, x: number, mirrorY: number, flip: boolean): void {
     castReflection(this.l.ctx, this.atlas, sprite, x, mirrorY, flip);
@@ -175,7 +175,7 @@ export class Reflections {
 
   /**
    * Draw the reflections onto the water in thin strips that slide sideways with the ripples.
-   * Zoomed out, each world pixel is tiny on screen, so the strips are made taller to match —
+   * Zoomed out, each world pixel is tiny on screen, so the strips are made taller to match:
    * the ripple looks the same and far fewer strips are drawn.
    */
   apply(target: CanvasRenderingContext2D, time: number, camY: number, zoom: number): void {

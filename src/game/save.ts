@@ -118,9 +118,18 @@ export function replaceState(game: Game, state: GameState): void {
   game.bus.emit('reset', {});
 }
 
+/**
+ * Where the save lives. Adding `?slot=name` to the address keeps a separate save under that name,
+ * which is handy for trying things out without touching the real one.
+ */
+function storageKey(): string {
+  const slot = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('slot');
+  return slot ? `${BALANCE.save.key}:${slot}` : BALANCE.save.key;
+}
+
 export function saveToStorage(game: Game): boolean {
   try {
-    localStorage.setItem(BALANCE.save.key, serialize(game));
+    localStorage.setItem(storageKey(), serialize(game));
     return true;
   } catch {
     return false;
@@ -130,7 +139,7 @@ export function saveToStorage(game: Game): boolean {
 /** Load from storage. Returns seconds since the save was written, or null when there was none (or it was refused). */
 export function loadFromStorage(game: Game): number | null {
   try {
-    const text = localStorage.getItem(BALANCE.save.key);
+    const text = localStorage.getItem(storageKey());
     if (!text) return null;
     const state = parseSave(text);
     // A clock set into the future earns nothing.
@@ -156,7 +165,7 @@ export function importCode(game: Game, code: string): boolean {
 
 export function wipeSave(game: Game): void {
   try {
-    localStorage.removeItem(BALANCE.save.key);
+    localStorage.removeItem(storageKey());
   } catch {
     // Storage may be unavailable; a fresh state is still correct.
   }

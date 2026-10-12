@@ -12,5 +12,5 @@ export function GameCanvas({ onReady }: { onReady(): void }) {
     return () => runtime.dispose();
   }, [onReady]);
 
-  return <canvas ref={ref} className="absolute inset-0 h-full w-full cursor-grab" />;
+  return <canvas ref={ref} className="absolute inset-0 h-full w-full" />;
 }

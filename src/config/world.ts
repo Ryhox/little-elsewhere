@@ -1,7 +1,7 @@
 /**
  * The map: where every land sits, what it is made of, and where things go on it.
  * All coordinates are in world pixels; positions inside a region are relative to its centre.
- * Nothing here is drawn by hand — terrain, bridges and decoration are generated from this data.
+ * Nothing here is drawn by hand: terrain, bridges and decoration are generated from this data.
  */
 
 export type Point = readonly [number, number];

@@ -28,6 +28,8 @@ const WINDOW_STEPS = 180 / DT;
 const MAX_SEASON_SECONDS = 2 * 3600;
 /** How long the bot will keep one season going while it tries to reach the ending. */
 const FINAL_PUSH_SECONDS = 25 * 60;
+/** `--minutes=<n>`: cut every season off after this long (for quick plateau measurements with `--stop`). */
+const LIMIT_SECONDS = Number(process.argv.find((a) => a.startsWith('--minutes='))?.split('=')[1] ?? Infinity) * 60;
 const REPORT_EVERY = 300;
 
 const game = createGame(newState(), mulberry(7));
@@ -40,6 +42,8 @@ game.bus.on('spawn', ({ id }) => {
 
 let log: string[] = [];
 let totalSeconds = 0;
+/** Tokens the previous rebirth gave. */
+let lastHarvest = 0;
 
 /** `--trace=<land>`: after that land is discovered, log every purchase for a minute (to chase down sudden jumps). */
 const TRACE_LAND = process.argv.find((a) => a.startsWith('--trace='))?.split('=')[1];
@@ -67,7 +71,7 @@ function dewGain(id: string): number {
 
 /**
  * `--stop=<land>`: the bot never discovers that land (or any after it). Run one season this way to see
- * what income a player plateaus at with everything before it — the number land prices are set from.
+ * what income a player plateaus at with everything before it: the number land prices are set from.
  */
 const STOP_LAND = process.argv.find((a) => a.startsWith('--stop='))?.split('=')[1];
 const stopIndex = STOP_LAND ? REGIONS.findIndex((r) => r.id === STOP_LAND) : Infinity;
@@ -179,10 +183,13 @@ for (let season = 1; season <= SEASONS; season++) {
       }
       // With the Elder Heartwood in sight, the bot stays to finish the story instead of turning the season.
       const finishing = !!s.perm.l_heartwood && s.time < FINAL_PUSH_SECONDS;
-      if (!finishing && ((past > 0 && tokens < past * STALL_GROWTH && s.time - firstTurnable > 60) || s.time > MAX_SEASON_SECONDS)) break;
+      // No sensible player rebirths for less than they got last time.
+      const worthwhile = tokens >= Math.max(5, lastHarvest * 0.8);
+      const stalled = past > 0 && tokens < past * STALL_GROWTH && s.time - firstTurnable > 60;
+      if (!finishing && ((worthwhile && stalled) || s.time > MAX_SEASON_SECONDS)) break;
       if (finishing && s.time > FINAL_PUSH_SECONDS - 1) break;
     }
-    if (s.stats.ended) break;
+    if (s.stats.ended || s.time > LIMIT_SECONDS) break;
   }
 
   const { s } = game;
@@ -191,10 +198,11 @@ for (let season = 1; season <= SEASONS; season++) {
   if (s.stats.ended) {
     console.log(`\n${summary}`);
     console.log(log.join('\n'));
-    console.log(`\n★ THE EVERBLOOM — story complete after ${fmtTime(totalSeconds)} of play, in season ${season}.`);
+    console.log(`\n★ THE EVERBLOOM: story complete after ${fmtTime(totalSeconds)} of play, in season ${season}.`);
     break;
   }
   const tokens = turnSeason(game);
+  lastHarvest = tokens;
   pendingCollects.length = 0;
   console.log(`\n${summary} → +${tokens} tokens (total played ${fmtTime(totalSeconds)})`);
   console.log(log.join('\n'));

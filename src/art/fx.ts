@@ -10,7 +10,7 @@ const roomy = (w: number, h: number) => new Pix(w + ROOM * 2, h + ROOM * 2);
 /** Radius the light cookies are baked at; the renderer scales them to each light's size. */
 export const LIGHT_BAKE_RADIUS = 32;
 
-/** A soft, banded, dithered disc of light — pixel-art falloff instead of a smooth gradient. */
+/** A soft, banded, dithered disc of light: pixel-art falloff instead of a smooth gradient. */
 function lightCookie(color: number, strength: number): Pix {
   const size = LIGHT_BAKE_RADIUS * 2;
   const p = new Pix(size, size);
@@ -39,7 +39,6 @@ const EMOTES: Record<string, readonly string[]> = {
   spark: ['...#...', '..###..', '#######', '..###..', '...#...'],
 };
 const EMOTE_COLORS: Record<string, number> = { heart: PAL.pink[2], note: PAL.blue[3], zzz: PAL.lilac[3], bang: PAL.gold[3], spark: PAL.gold[4] };
-export const EMOTE_NAMES = Object.keys(EMOTES);
 
 function stamp(rows: readonly string[], color: number): Pix {
   const p = roomy(rows[0].length, rows.length);
@@ -80,7 +79,6 @@ const ITEMS: Record<string, (p: Pix, x: number, y: number) => void> = {
   },
   mug: (p, x, y) => paintMug(p, x, y + 1, true),
 };
-export const ITEM_NAMES = Object.keys(ITEMS);
 
 /** The little rain cloud the player drags around: a huddle of soft puffs with a flat, heavy underside. */
 function rainCloud(): Pix {

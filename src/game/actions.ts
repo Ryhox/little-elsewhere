@@ -80,7 +80,7 @@ export function buyBuilding(game: Game, id: string, want = 1, auto = false): num
 export const upgradeCost = (game: Game, def: UpgradeDef): Cost => scaledCost(def.cost, game.mods.upgradeCost);
 export const upgradeVisible = (game: Game, def: UpgradeDef) => !game.s.up[def.id] && meets(game.s, def.req);
 
-/** Upgrades that can be bought right now or soon, cheapest first is left to the caller. */
+/** Upgrades on offer right now, in no particular order: sorting them is left to the caller. */
 export function availableUpgrades(game: Game): UpgradeDef[] {
   return UPGRADES.filter((def) => upgradeVisible(game, def));
 }

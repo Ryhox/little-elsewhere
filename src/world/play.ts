@@ -11,10 +11,7 @@ import type { RegionView } from './populate';
 import type { Stage } from './stage';
 
 const PLAY = BALANCE.play;
-const CLOUD_LIFT = 30;
-const WATER_CHECK = 0.3;
-/** Smallest plant worth shaking, in sprite pixels. */
-const SHAKEABLE_HEIGHT = 12;
+const LOOK = RENDER.play;
 
 /**
  * Hands-on play in the world: dewdrops to sweep up, plants to shake, creatures to pet
@@ -93,10 +90,15 @@ export class Play {
 
   /* ───────────────────────────── The rain cloud ───────────────────────────── */
 
+  /** Is the rain cloud under this world point? */
+  overCloud(wx: number, wy: number): boolean {
+    const c = this.cloud;
+    return !!c && hits(c, currentSprite(c, this.s.season), wx, wy, 5);
+  }
+
   /** Try to pick up the cloud at a world point. */
   grab(wx: number, wy: number): boolean {
-    const c = this.cloud;
-    if (!c || !hits(c, currentSprite(c, this.s.season), wx, wy, 5)) return false;
+    if (!this.overCloud(wx, wy)) return false;
     this.held = true;
     return true;
   }
@@ -105,7 +107,7 @@ export class Play {
     if (!this.cloud || !this.held) return;
     // The cloud hangs above the spot it rains on; the pointer holds the cloud itself.
     this.cloud.x = wx;
-    this.cloud.y = wy + CLOUD_LIFT;
+    this.cloud.y = wy + LOOK.cloudLift;
   }
 
   release(): void {
@@ -119,10 +121,10 @@ export class Play {
   private rain(dt: number): void {
     const c = this.cloud!;
     const { particles } = this.s;
-    this.rainCarry += dt * 60 * particles.density;
+    this.rainCarry += dt * LOOK.rainPerSecond * particles.density;
     while (this.rainCarry >= 1) {
       this.rainCarry -= 1;
-      particles.spawn(particles.id('rain'), c.x + (Math.random() - 0.5) * 22, c.y + (Math.random() - 0.5) * 8, CLOUD_LIFT - 4, 0, 0, -90);
+      particles.spawn(particles.id('rain'), c.x + (Math.random() - 0.5) * LOOK.rainWidth, c.y + (Math.random() - 0.5) * 8, LOOK.cloudLift - 4, 0, 0, -90);
     }
     const until = this.s.time + PLAY.cloud.seconds;
     const r = PLAY.cloud.radius;
@@ -159,11 +161,21 @@ export class Play {
 
   /* ───────────────────────────── Shaking and petting ───────────────────────────── */
 
+  /** What a tap on this entity would do right now, if anything. */
+  offer(e: Entity | null): 'pet' | 'shake' | null {
+    if (!e || e.ready > this.s.time) return null;
+    const actor = e as Partial<Actor>;
+    if (actor.def) return actor.def.move !== 'swim' ? 'pet' : null;
+    const tall = currentSprite(e, this.s.season).h >= LOOK.shakeableHeight;
+    return e.tag === 'decor' && e.sway && !e.flat && tall ? 'shake' : null;
+  }
+
   /** A tap landed on this entity (the topmost under the pointer). Returns true if it responded. */
   tap(e: Entity | null): boolean {
-    if (!e || e.ready > this.s.time) return false;
-    const actor = e as Partial<Actor>;
-    if (actor.def && actor.def.move !== 'swim') {
+    const offer = this.offer(e);
+    if (!e || !offer) return false;
+    if (offer === 'pet') {
+      const actor = e as Actor;
       pet(this.s.game);
       e.ready = this.s.time + PLAY.pet.cooldown;
       e.badge = this.s.atlas.get('emote_heart');
@@ -171,8 +183,6 @@ export class Play {
       this.s.burst('collect', e.x, e.y - e.lift - 8, 0.8);
       return true;
     }
-    const tall = currentSprite(e, this.s.season).h >= SHAKEABLE_HEIGHT;
-    if (e.tag !== 'decor' || !e.sway || e.flat || !tall) return false;
     const { amount, seed } = shake(this.s.game);
     e.jolt = this.s.time;
     e.ready = this.s.time + PLAY.shake.cooldown;
@@ -216,7 +226,7 @@ export class Play {
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const d = this.drops[i];
       if (time - d.born > p.lifetime) this.drops.splice(i, 1);
-      else if (Math.random() < dt * 0.9) this.s.particles.spawn(this.s.particles.id('sparkle'), d.x, d.y, d.lift + 2);
+      else if (Math.random() < dt * LOOK.dropSparkle) this.s.particles.spawn(this.s.particles.id('sparkle'), d.x, d.y, d.lift + 2);
     }
     this.chainClock -= dt;
     if (this.chainClock <= 0) this.chain = 0;
@@ -224,19 +234,40 @@ export class Play {
     // The cloud arrives with its upgrade and waits over the clearing until it is picked up.
     if (game.mods.flags.cloud && !this.cloud) {
       const [x, y] = this.s.spring;
-      this.cloud = makeEntity(this.s.atlas, 'raincloud', x + 46, y - 26 + CLOUD_LIFT, { tag: 'cloud', born: time });
-      this.cloud.lift = CLOUD_LIFT;
+      const [dx, dy] = LOOK.cloudHome;
+      this.cloud = makeEntity(this.s.atlas, 'raincloud', x + dx, y + dy + LOOK.cloudLift, { tag: 'cloud', born: time });
+      this.cloud.lift = LOOK.cloudLift;
     } else if (!game.mods.flags.cloud && this.cloud) this.cloud = null;
     if (this.cloud) {
-      this.cloud.lift = CLOUD_LIFT + Math.sin(time * 1.4) * 1.5;
+      this.cloud.lift = LOOK.cloudLift + Math.sin(time * 1.4) * LOOK.cloudBob;
       if (this.held) this.rain(dt);
     }
     this.waterClock -= dt;
     if (this.waterClock <= 0) {
-      this.waterClock = WATER_CHECK;
+      this.waterClock = LOOK.waterCheckSeconds;
       this.measureWatering();
     }
     if (showNumbers) this.showIncome(dt);
+  }
+
+  /** A dewdrop was swept up a moment ago (the chain is still alive). */
+  get sweeping(): boolean {
+    return this.chainClock > 0;
+  }
+
+  /** Where the tutorial should point for shaking: the plant nearest the spring that is ready to be shaken. */
+  shakeable(): Point | null {
+    const [sx, sy] = this.s.spring;
+    let best: Entity | null = null;
+    let bestD = Infinity;
+    for (const view of this.views()) {
+      for (const e of view.decor) {
+        if (this.offer(e) !== 'shake' || e.born > this.s.time) continue;
+        const d = Math.hypot(e.x - sx, e.y - sy);
+        if (d < bestD) [best, bestD] = [e, d];
+      }
+    }
+    return best ? [best.x, best.y - currentSprite(best, this.s.season).h + 14] : null;
   }
 
   /** Where the tutorial should point for sweeping: the nearest waiting dewdrop, if any. */

@@ -1,5 +1,5 @@
 /**
- * Every sound in the game is synthesised from these recipes — there are no audio files.
+ * Every sound in the game is synthesised from these recipes: there are no audio files.
  * A sound is a list of voices played together; tweak or add recipes freely.
  */
 export interface Voice {
@@ -63,6 +63,8 @@ export const SOUNDS: Record<string, Voice[]> = {
     ...chime(C6, 1.3, 0.2, 2),
   ],
   splash: [{ wave: 'noise', freq: [0, 0], for: 0.14, gain: 0.1, lowpass: 1800 }],
+  /** The teacher's voice: one soft blip per few letters. */
+  speak: [{ wave: 'triangle', freq: [560, 640], for: 0.04, gain: 0.09 }],
 };
 
 /** The gentle generative music: one soft note at a time, picked from a pentatonic scale. */

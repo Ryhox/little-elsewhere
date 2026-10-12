@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { rt } from '@/app/runtime';
 import { RENDER } from '@/config/render';
+import { SITE } from '@/config/site';
 import { setHelper } from '@/game/actions';
 import { exportCode, importCode, wipeSave } from '@/game/save';
 import type { HelperRule } from '@/game/types';
@@ -242,6 +243,25 @@ export function SettingsTab() {
             Start over…
           </Btn>
         )}
+      </div>
+
+      <SectionTitle>About</SectionTitle>
+      <div className="skin-slot flex flex-col gap-1">
+        <div className="leading-tight">
+          {SITE.name} is a game by <b>{SITE.author}</b>.
+        </div>
+        {/* Real links, dressed as the game's buttons, so they are as easy to find as everything else here. */}
+        <div className="flex gap-1">
+          {[
+            ['GitHub', SITE.github],
+            ['Source code', SITE.repo],
+            ['Privacy', 'privacy.html'],
+          ].map(([label, href]) => (
+            <a key={label} className="btn btn-tan flex-1 cursor-pointer text-center" href={href} target="_blank" rel="noreferrer">
+              {label}
+            </a>
+          ))}
+        </div>
       </div>
 
       <div className="mt-1 text-center text-xs leading-tight text-ink-soft">

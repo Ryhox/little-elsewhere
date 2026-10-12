@@ -38,6 +38,15 @@ export interface Runtime {
 
 let current: Runtime | null = null;
 
+// Hot reload swaps modules one at a time, but the running game is all of a piece. If this module is
+// ever loaded a second time (because a config, simulation or world file was edited), start clean
+// instead of leaving the interface talking to a copy that was never started. Edits to interface
+// files alone do not come through here and still refresh in place.
+if (import.meta.hot) {
+  if (import.meta.hot.data.loaded) location.reload();
+  import.meta.hot.data.loaded = true;
+}
+
 /** The live runtime. Only valid after boot. */
 export function rt(): Runtime {
   if (!current) throw new Error('Runtime not started');
@@ -93,10 +102,7 @@ function wire(game: Game, sound: Sound): (() => void)[] {
     bus.on('sweep', ({ chain }) => sound.play('tap', 1.2 + Math.min(chain, 12) * 0.06, 0.7, 0.02)),
     bus.on('shake', ({ seed }) => sound.play(seed ? 'treasure' : 'splash', 1, 1.6)),
     bus.on('pet', () => sound.play('collect', 1.3, 0.7)),
-    bus.on('guide', ({ finished }) => {
-      sound.play('discovery', 1.2, 0.8, 0.2);
-      if (finished) ui().toast('That is everything you need to know. The rest is yours to discover!', 'ic_check', true);
-    }),
+    bus.on('guide', () => sound.play('discovery', 1.2, 0.8, 0.2)),
     bus.on('ending', () => {
       sound.play('season');
       // Let the tree be seen in bloom for a moment before the closing words appear.
@@ -106,7 +112,7 @@ function wire(game: Game, sound: Sound): (() => void)[] {
       if (id === 'merchant') ui().toast('A travelling merchant has rolled in by the pond.', 'peddler_0');
       else if (id === 'storm') ui().toast('Magical rain! Every plant is thriving.', 'res_dew');
       else if (id === 'meteor') ui().toast('A meteor shower! Catch the falling stars.', 'res_starlight');
-      else if (id === 'rainbow') ui().toast('A rainbow — find where it ends.', 'ic_sun');
+      else if (id === 'rainbow') ui().toast('A rainbow! Find where it ends.', 'ic_sun');
       else if (id === 'golden') sound.play('discovery', 1.4, 0.6);
     }),
   ];
@@ -213,7 +219,7 @@ export function startRuntime(canvas: HTMLCanvasElement): Runtime {
     if (carry > stepSeconds * MAX_STEPS) carry = 0;
     if (zen) game.s.stats.zenSeconds = (game.s.stats.zenSeconds ?? 0) + dt;
     const pointAt = zen ? undefined : guideStep(game.s)?.point;
-    world.pointer = pointAt === 'spring' ? world.spring : pointAt === 'drop' ? world.play.nearestDrop() : null;
+    world.pointer = pointAt === 'spring' ? world.spring : pointAt === 'drop' ? world.play.nearestDrop() : pointAt === 'plant' ? world.play.shakeable() : null;
     if (seasonClockDue(game) && !world.cutscene.active) turn();
 
     input.update(dt);

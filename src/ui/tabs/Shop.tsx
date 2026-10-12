@@ -9,6 +9,7 @@ import { fmt } from '@/game/format';
 import type { BuildingDef, Cat, UpgradeCat, UpgradeDef } from '@/game/types';
 import { useUI } from '@/store/ui';
 import { buildingYield, describeBuilding } from '../describe';
+import { GuideArrow, GuideTag, isWanted, useGuide, useWantedRow } from '../Guide';
 import { Bar, Btn, CostLine, Icon, SectionTitle, tip, useTick } from '../widgets';
 
 const BUY_AMOUNTS: readonly [number, string][] = [
@@ -41,8 +42,12 @@ function BuildingRow({ def, amount }: { def: BuildingDef; amount: number }) {
   const cost = buildingCost(game, def.id, count);
   const affordable = !full && canAfford(game.s, cost);
   const kind = KINDS[def.cat];
+  const wanted = isWanted(useGuide().want, 'building', def.id);
+  const row = useWantedRow(wanted);
   return (
-    <div className={`flex items-center gap-2 ${affordable ? 'skin-slot-lit' : 'skin-slot'}`} {...tip(() => ({ title: def.name, lines: describeBuilding(game, def) }))}>
+    <div ref={row.ref} className={`relative flex items-center gap-2 ${affordable ? 'skin-slot-lit' : 'skin-slot'} ${row.className}`} {...tip(() => ({ title: def.name, lines: describeBuilding(game, def) }))}>
+      {wanted && <GuideTag>{affordable ? 'Buy this one' : 'Save up for this'}</GuideTag>}
+      {wanted && affordable && <GuideArrow to="right" className="top-1/2 right-[98px]" />}
       <Icon name={def.icon} size={40} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-1.5">
@@ -84,8 +89,12 @@ function DiscoverCard({ id }: { id: string }) {
   const cost = regionCost(game, region);
   const price = cost.dew ?? 0;
   const affordable = canAfford(game.s, cost);
+  const wanted = isWanted(useGuide().want, 'region', id);
+  const row = useWantedRow(wanted);
   return (
-    <div className={`flex flex-col gap-1 ${affordable ? 'skin-slot-lit anim-shimmer' : 'skin-slot'}`}>
+    <div ref={row.ref} className={`relative flex flex-col gap-1 ${affordable ? 'skin-slot-lit anim-shimmer' : 'skin-slot'} ${row.className}`}>
+      {wanted && <GuideTag>{affordable ? 'Explore this' : 'Save up for this'}</GuideTag>}
+      {wanted && affordable && <GuideArrow to="right" className="top-4 right-[98px]" />}
       <div className="flex items-center gap-2">
         <Icon name="ic_map" size={34} />
         <div className="min-w-0 flex-1">
@@ -157,8 +166,12 @@ function UpgradeRow({ def }: { def: UpgradeDef }) {
   const { game } = rt();
   const cost = upgradeCost(game, def);
   const affordable = canAfford(game.s, cost);
+  const wanted = isWanted(useGuide().want, 'upgrade', def.id);
+  const row = useWantedRow(wanted);
   return (
-    <div className={`flex items-center gap-2 ${affordable ? 'skin-slot-lit' : 'skin-slot'}`}>
+    <div ref={row.ref} className={`relative flex items-center gap-2 ${affordable ? 'skin-slot-lit' : 'skin-slot'} ${row.className}`}>
+      {wanted && <GuideTag>{affordable ? 'Buy this one' : 'Save up for this'}</GuideTag>}
+      {wanted && affordable && <GuideArrow to="right" className="top-1/2 right-[98px]" />}
       <Icon name={def.icon} size={36} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-1.5">
@@ -189,7 +202,10 @@ export function UpgradesTab() {
   const [filter, setFilter] = useState<UpgradeCat | 'all'>('all');
   const [showOwned, setShowOwned] = useState(false);
   const all = availableUpgrades(game);
-  const available = all.filter((u) => filter === 'all' || u.cat === filter).sort((a, b) => costShare(game.s, upgradeCost(game, a)) - costShare(game.s, upgradeCost(game, b)));
+  const { want } = useGuide();
+  // Whatever the lesson asks for comes first, whatever the filter says.
+  const asked = (u: UpgradeDef) => isWanted(want, 'upgrade', u.id);
+  const available = all.filter((u) => filter === 'all' || u.cat === filter || asked(u)).sort((a, b) => Number(asked(b)) - Number(asked(a)) || costShare(game.s, upgradeCost(game, a)) - costShare(game.s, upgradeCost(game, b)));
   const present = new Set(all.map((u) => u.cat));
   const owned = Object.keys(game.s.up)
     .map((id) => UPGRADE_BY_ID[id])
@@ -209,7 +225,7 @@ export function UpgradesTab() {
             ))}
         </div>
       )}
-      {available.length === 0 && <div className="skin-slot py-3 text-center">Nothing new to learn just yet. Keep growing — more will appear.</div>}
+      {available.length === 0 && <div className="skin-slot py-3 text-center">Nothing new to learn just yet. Keep growing and more will appear.</div>}
       {available.map((def) => (
         <UpgradeRow key={def.id} def={def} />
       ))}

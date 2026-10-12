@@ -1,44 +1,143 @@
 import type { Requirement } from '@/game/types';
+import type { TeacherAnimName } from './teacher';
 
-/** Where a guide step points the player: the spring in the world, or one of the menu tabs. */
-export type GuideTarget = 'spring' | 'drop' | 'build' | 'upgrades' | 'season';
+/** Something in the world the bouncing arrow can point at. */
+export type GuidePoint = 'spring' | 'drop' | 'plant';
+
+/**
+ * The exact thing in the menus a lesson asks for. It gets a glowing frame and an arrow there,
+ * its price and a "Show me" button on the lesson card.
+ */
+export type GuideWant = { building: string } | { upgrade: string } | { region: string };
+
+/** One thing the teacher says, and the gesture she makes while saying it (see config/teacher.ts). */
+export type GuideLine = readonly [gesture: TeacherAnimName, words: string];
 
 export interface GuideStep {
   id: string;
   title: string;
+  /** The short reminder shown on the lesson card once she has finished talking. */
   text: string;
+  /** What she says to introduce the lesson, a line at a time. */
+  say: readonly GuideLine[];
+  /** What she says when the lesson is done. */
+  done: GuideLine;
   /** Finished when all of these hold… */
   req?: Requirement[];
   /** …and/or when this counter (see game/progress.ts) reaches the number. */
   stat?: [string, number];
-  point?: GuideTarget;
+  point?: GuidePoint;
+  want?: GuideWant;
 }
 
 /**
- * The tutorial, as an ordered list of small goals. Each one explains a single idea and
- * completes itself when the player has done it. Reorder, reword or add steps freely.
+ * The tutorial: a handful of short lessons covering the basics: tap, build, sweep, shake and
+ * pet, upgrade, expand. Each completes itself when the player has done it. Reorder, reword or
+ * add lessons freely; keep it short.
  */
 export const GUIDE: GuideStep[] = [
-  { id: 'tap', title: 'Wake the spring', text: 'Tap the glowing spring to gather Dewdrops. You can hold it down, too.', stat: ['clicks', 10], point: 'spring' },
-  { id: 'fern', title: 'Plant a Dew Fern', text: 'Open Build and plant a Dew Fern. It gathers dew by itself, forever.', req: [{ building: ['fern', 1] }], point: 'build' },
-  { id: 'sweep', title: 'Sweep the dew', text: 'Dewdrops gather on everything in your world. Just move your mouse over the glittering drops to collect them — no clicking. Sweep several quickly for a chain bonus.', stat: ['sweeps', 5], point: 'drop' },
-  { id: 'upgrade', title: 'Learn something new', text: 'Upgrades make what you own stronger. Buy Mossy Stones in the Upgrades tab.', req: [{ upgrade: 's_moss' }], point: 'upgrades' },
-  { id: 'burrow', title: 'Invite a helper', text: 'Dig a Sproutling Burrow in Build. A little creature will move in and get to work.', req: [{ building: ['burrow', 1] }], point: 'build' },
-  { id: 'shake', title: 'Shake and pet', text: 'Click a tree or bush to shake the dew out of it. Click a creature to pet it — happy creatures work harder.', stat: ['shakes', 1] },
-  { id: 'look', title: 'Look around', text: 'Drag the world to move and scroll (or pinch) to zoom. Everything you buy shows up here.', stat: ['looked', 1] },
-  { id: 'garden', title: 'Discover new land', text: 'New lands rise from the sea. Explore the Petal Garden from the top of the Build tab.', req: [{ region: 'garden' }], point: 'build' },
-  { id: 'cloud', title: 'A cloud of your own', text: 'Buy the Little Rain Cloud in Upgrades, then drag it across your plants. Whatever it rains on works twice as hard for a while.', stat: ['watered', 1], point: 'upgrades' },
-  { id: 'bed', title: 'Grow flowers', text: 'Flower Beds gather far more dew than ferns. Plant three of them.', req: [{ building: ['bed', 3] }], point: 'build' },
-  { id: 'ten', title: 'Strength in numbers', text: 'Owning 10 of a building doubles everything it makes. Reach 10 Dew Ferns.', req: [{ building: ['fern', 10] }], point: 'build' },
-  { id: 'grove', title: 'Into the mushrooms', text: 'Save up and discover the Mushroom Grove, home of the Mosslings.', req: [{ region: 'grove' }], point: 'build' },
-  { id: 'treasure', title: 'Keep your eyes open', text: 'A sparkle in the grass is buried treasure — tap it. Golden butterflies, falling stars and visitors reward a quick tap too.', stat: ['treasures', 1] },
-  { id: 'waters', title: 'Water and honey', text: 'Discover the Lilypad Pond and the Honey Meadow. Ponds water your plants and bees make your flowers thrive.', req: [{ region: 'pond' }, { region: 'meadow' }], point: 'build' },
-  { id: 'hamlet', title: 'A place to call home', text: 'Discover the Hearthside Hamlet, where the Pebblefolk build cottages and workshops.', req: [{ region: 'hamlet' }], point: 'build' },
-  { id: 'chime', title: 'Find harmony', text: 'Raise the Harmony Chime (Upgrades). Harmony grows when plants, creatures, crafts and magic are balanced — and it lifts everything.', req: [{ upgrade: 'w_chime' }], point: 'upgrades' },
-  { id: 'sundial', title: 'Keeper of seasons', text: 'Raise the Season Sundial (Upgrades). It lets you end the season and begin again, stronger.', req: [{ upgrade: 'w_sundial' }], point: 'upgrades' },
-  { id: 'turn', title: 'Turn the Season', text: 'Open the Season tab and turn the season. You start over, but keep Evergreen Tokens that make every future season faster.', req: [{ seasons: 1 }], point: 'season' },
-  { id: 'tree', title: 'Grow the Evergreen tree', text: 'Spend your tokens on the Evergreen tree in the Season tab. What grows there is yours forever.', stat: ['perms', 1], point: 'season' },
+  {
+    id: 'tap',
+    title: 'Wake the spring',
+    text: 'Click the glowing spring ten times. You can hold the button down, too.',
+    say: [
+      ['wave', 'Hello there! I am Claudia, and I teach here in Little Elsewhere. Let me show you the basics. It will only take a minute.'],
+      ['tap', 'See the glowing spring in the middle? Click it ten times. Every click gives you Dew, and Dew buys everything.'],
+    ],
+    done: ['cheer', 'Hear it bubble? That is your first Dew!'],
+    stat: ['clicks', 10],
+    point: 'spring',
+  },
+  {
+    id: 'fern',
+    title: 'Build something',
+    text: 'Buy a Dew Fern in the Build menu. It gathers dew by itself, forever.',
+    say: [['plant', 'Clicking is only the start. Buy a Dew Fern. I have marked it for you in the Build menu on the right. It gathers dew all by itself.']],
+    done: ['nod', 'A fine fern! Everything you build shows up out in the world.'],
+    req: [{ building: ['fern', 1] }],
+    want: { building: 'fern' },
+  },
+  {
+    id: 'sweep',
+    title: 'Sweep the dew',
+    text: 'Move your mouse over the glittering dewdrops to collect them, no clicking. Collect five.',
+    say: [['sweep', 'Now look at your world: glittering dewdrops gather on everything. Just move your mouse over them, no clicking needed. Sweep up five.']],
+    done: ['cheer', 'Lovely! Sweep several in a row and each one is worth more.'],
+    stat: ['sweeps', 5],
+    point: 'drop',
+  },
+  {
+    id: 'shake',
+    title: 'Shake and pet',
+    text: 'Click a tree or bush to shake dew out of it. Later, click creatures to pet them.',
+    say: [
+      ['shake', 'Here is another trick: click a tree or a bush to shake the dew out of it. Sometimes a seed falls out as well.'],
+      ['pet', 'And when little creatures move in, click them to give them a pat. Happy creatures work harder for a while.'],
+    ],
+    done: ['nod', 'Ha! Did you see it rain down? Give it a moment and you can shake it again.'],
+    stat: ['shakes', 1],
+    point: 'plant',
+  },
+  {
+    id: 'upgrade',
+    title: 'Learn an upgrade',
+    text: 'Buy Mossy Stones in the Upgrades menu. Upgrades make what you have stronger.',
+    say: [['book', 'Time for some book learning. Upgrades make what you already own stronger. Buy Mossy Stones. I have marked it in the Upgrades menu.']],
+    done: ['cheer', 'Twice the dew from every click. New upgrades appear as your world grows.'],
+    req: [{ upgrade: 's_moss' }],
+    want: { upgrade: 's_moss' },
+  },
+  {
+    id: 'garden',
+    title: 'Discover new land',
+    text: 'Save up and explore the Petal Garden. It is at the top of the Build menu.',
+    say: [
+      ['map', 'My map shows land hiding under the sea! Save up your dew and explore the Petal Garden. It waits at the top of the Build menu.'],
+      ['spy', 'While you save: drag the world to move around, and scroll to zoom in and out. There is a lot to see.'],
+    ],
+    done: ['cheer', 'Land ho! Every new land brings new things to build.'],
+    req: [{ region: 'garden' }],
+    want: { region: 'garden' },
+  },
+];
+
+/** Her last words, once every lesson is done. */
+export const GUIDE_FAREWELL: readonly GuideLine[] = [
+  ['token', 'One last thing for later: when your world grows slowly, press Rebirth in the bottom-left corner. You start again, but with Evergreen Tokens that make everything faster for good.'],
+  ['thanks', 'And that is everything I can teach you. Thank you for being such a wonderful student, and thank you for looking after Little Elsewhere!'],
+];
+
+/**
+ * What she says when you come back after being away. `time` is how long the world ran without
+ * you; the first line is for when it gathered something, the second for when it did not.
+ */
+export const GUIDE_WELCOME = {
+  gesture: 'wave',
+  busy: (time: string) => `Welcome back! Your little world kept busy for ${time} while you were away. Look what it gathered for you.`,
+  quiet: (time: string) => `Welcome back! You were away for ${time}. It was a quiet time, and not much happened.`,
+} as const satisfies { gesture: TeacherAnimName; busy(time: string): string; quiet(time: string): string };
+
+/** Her closing words, once the Elder Tree has bloomed. */
+export const GUIDE_ENDING: GuideLine = [
+  'thanks',
+  'The Elder Tree is in full bloom! From one small spring you grew a whole world, season after season, and now its heart has opened. Little Elsewhere is as it was always meant to be. Thank you for tending it.',
 ];
 
 /** Counters the guide keeps in the save's stats. */
-export const GUIDE_STAT = { step: 'guideStep', hidden: 'guideHidden' } as const;
+export const GUIDE_STAT = { step: 'guideStep', hidden: 'guideHidden', seen: 'guideSeen' } as const;
+
+/** How the conversation with the teacher feels. */
+export const GUIDE_FEEL = {
+  /** Letters she speaks per second. */
+  lettersPerSecond: 42,
+  /** After a line is fully spoken it stays this long (plus a little per letter) before she moves on by herself. */
+  lingerSeconds: 3.5,
+  lingerPerLetter: 0.045,
+  /** How long the card takes to fly between the middle of the screen and its corner, in milliseconds. */
+  flyMs: 520,
+  /** How big she is drawn: in conversation, and on the small card in the corner. */
+  portraitScale: 3,
+  cardScale: 2,
+  /** A soft blip every this many letters as she speaks (0 = silent). */
+  blipEvery: 3,
+} as const;

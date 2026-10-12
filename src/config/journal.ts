@@ -30,7 +30,7 @@ const CREATURES: JournalDef[] = [
 
 const EVENTS: JournalDef[] = [
   { id: 'e_treasure', kind: 'event', name: 'Buried Treasure', text: 'Something glints in the grass. Somebody hid it; you found it.', hint: 'Watch for a glint.', icon: 'chest' },
-  { id: 'e_golden', kind: 'event', name: 'Golden Butterfly', text: 'It only passes through — catch it and the whole world shines.', hint: 'Rare wings cross the garden.', icon: 'golden_0' },
+  { id: 'e_golden', kind: 'event', name: 'Golden Butterfly', text: 'It only passes through. Catch it and the whole world shines.', hint: 'Rare wings cross the garden.', icon: 'golden_0' },
   { id: 'e_storm', kind: 'event', name: 'Magical Rain', text: 'Warm rain that smells of spring. Plants drink it greedily.', hint: 'Wait for the weather.', icon: 'res_dew' },
   { id: 'e_rainbow', kind: 'event', name: 'Rainbow', text: 'It ends somewhere. Somewhere specific.', hint: 'After the rain.', icon: 'ic_sun' },
   { id: 'e_merchant', kind: 'event', name: 'Peddler Toad', text: 'Old Mr. Bramble and his cart of curios. Prices firm, hat magnificent.', hint: 'A cart rolls in by the pond.', icon: 'peddler_0' },
@@ -66,7 +66,6 @@ const WONDER_ENTRIES: JournalDef[] = WONDERS.map((w) => ({ id: `w_${w.id}`, kind
 
 export const JOURNAL: JournalDef[] = [...CREATURES, ...WONDER_ENTRIES, ...SECRETS, ...COMBOS, ...EVENTS];
 export const JOURNAL_BY_ID: Record<string, JournalDef> = Object.fromEntries(JOURNAL.map((j) => [j.id, j]));
-export const SECRET_COUNT = SECRETS.length;
 
 /** Section titles for the journal tabs. */
 export const JOURNAL_KINDS: Record<JournalDef['kind'], string> = {

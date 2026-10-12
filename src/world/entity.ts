@@ -106,7 +106,7 @@ export interface SeasonBlend {
   a: number;
   b: number;
   blend: number;
-  /** How wintry it is, 0..1 — tender plants fade by this. */
+  /** How wintry it is, 0..1: tender plants fade by this. */
   winter: number;
 }
 

@@ -233,7 +233,6 @@ const WILDFLOWERS: readonly [string, FlowerKind, Ramp][] = [
   ['flower_lavender', 'lavender', PAL.violet],
   ['flower_sunflower', 'sunflower', PAL.yellow],
 ];
-export const WILDFLOWER_NAMES = WILDFLOWERS.map((f) => f[0]);
 
 function flowerSprite(kind: FlowerKind, ramp: Ramp): Pix {
   const p = roomy(11, 20);

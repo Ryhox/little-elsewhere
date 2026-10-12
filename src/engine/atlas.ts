@@ -67,9 +67,9 @@ interface Pending {
  */
 export class Atlas {
   canvas!: HTMLCanvasElement;
-  /** Same layout as `canvas`, but every sprite is a flat silhouette — the shape shadows are cast from. */
+  /** Same layout as `canvas`, but every sprite is a flat silhouette: the shape shadows are cast from. */
   silhouette!: HTMLCanvasElement;
-  /** The same in pure white — the shape of each sprite as light, for things that glow. */
+  /** The same in pure white: the shape of each sprite as light, for things that glow. */
   mask!: HTMLCanvasElement;
   private pending: Pending[] = [];
   private sprites = new Map<string, Sprite>();

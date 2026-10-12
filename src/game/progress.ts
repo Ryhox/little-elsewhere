@@ -1,5 +1,5 @@
 import { ACHIEVEMENTS } from '@/config/achievements';
-import { GUIDE, GUIDE_STAT, type GuideStep } from '@/config/guide';
+import { GUIDE, GUIDE_STAT, type GuideStep, type GuideWant } from '@/config/guide';
 import { JOURNAL, JOURNAL_BY_ID } from '@/config/journal';
 import type { Game } from './context';
 import { meets, totalBuildings } from './economy';
@@ -36,6 +36,9 @@ export function discover(game: Game, id: string): boolean {
 export function guideStep(s: GameState): GuideStep | null {
   return s.stats[GUIDE_STAT.hidden] ? null : (GUIDE[s.stats[GUIDE_STAT.step] ?? 0] ?? null);
 }
+
+/** The thing in the menus the current lesson asks the player to buy, if it asks for one. */
+export const guideWant = (s: GameState): GuideWant | null => guideStep(s)?.want ?? null;
 
 /** Move the guide on past every step that is already done. */
 function advanceGuide(game: Game): void {

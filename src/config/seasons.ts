@@ -35,7 +35,7 @@ export const BLESSING_BY_ID: Record<string, BlessingDef> = Object.fromEntries(BL
 export const BLESSING_CHOICES = 3;
 
 /**
- * Permanent gifts from the night sky, bought with Dew once Star Charts is owned —
+ * Permanent gifts from the night sky, bought with Dew once Star Charts is owned:
  * somewhere to pour a strong season's surplus. x/y place them on the chart (0..1).
  */
 export const CONSTELLATIONS: ConstellationDef[] = [

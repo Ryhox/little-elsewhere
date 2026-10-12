@@ -70,11 +70,11 @@ export const MERCHANT = {
   /** Merchant's Friend lowers every price to this share. */
   friendDiscount: 0.6,
   wares: [
-    { label: 'Lucky charm — all income ×2 for 3 minutes', priceSeconds: 100, minPrice: 200, get: { buff: ['boon', 180] } },
+    { label: 'Lucky charm: all income ×2 for 3 minutes', priceSeconds: 100, minPrice: 200, get: { buff: ['boon', 180] } },
     { label: 'A mysterious seed', priceSeconds: 240, minPrice: 2000, get: { seed: 1 } },
-    { label: 'Bottled sunrise — a Golden Hour, right now', priceSeconds: 150, minPrice: 500, get: { buff: ['golden', 30] } },
-    { label: 'Pocket hourglass — every ability ready again', priceSeconds: 60, minPrice: 300, get: { refresh: true } },
-    { label: 'Storm in a jar — magical rain for a minute', priceSeconds: 45, minPrice: 150, get: { buff: ['storm', 60] } },
-    { label: 'Tapping gloves — taps ×20 for 20 seconds', priceSeconds: 30, minPrice: 100, get: { buff: ['frenzy', 20] } },
+    { label: 'Bottled sunrise: a Golden Hour, right now', priceSeconds: 150, minPrice: 500, get: { buff: ['golden', 30] } },
+    { label: 'Pocket hourglass: every ability ready again', priceSeconds: 60, minPrice: 300, get: { refresh: true } },
+    { label: 'Storm in a jar: magical rain for a minute', priceSeconds: 45, minPrice: 150, get: { buff: ['storm', 60] } },
+    { label: 'Tapping gloves: taps ×20 for 20 seconds', priceSeconds: 30, minPrice: 100, get: { buff: ['frenzy', 20] } },
   ] as Ware[],
 } as const;

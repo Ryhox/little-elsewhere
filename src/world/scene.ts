@@ -27,6 +27,8 @@ import { Floaters } from './floaters';
 import { Happenings } from './happenings';
 import { ambientColor, Lighting, Reflections, Shadows, sunState, type Lamp } from './light';
 import { Nav } from './nav';
+import { Play } from './play';
+import { SeaLife } from './sealife';
 import { bridgeEnds, populate, spanBridge, syncBuilding, type Bridge, type RegionView } from './populate';
 import { buildTerrain, FOAM_FRAMES, LAND, PATH, POND, SEA, terrainAt } from './terrain';
 import type { Spot, Stage } from './stage';
@@ -47,11 +49,14 @@ const RAINBOW = [PAL.red[2], PAL.orange[2], PAL.yellow[2], PAL.leaf[4], PAL.blue
 const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
 const GOLD = hex(PAL.gold[4]);
 
-/** What is under the pointer, for tooltips and the cursor. */
+/** Something under the pointer that has a tooltip. */
 export interface Hover {
   kind: 'spring' | 'building' | 'thing';
   id: string;
 }
+
+/** Which mouse pointer the world asks for: it says what a click here would do. */
+export type WorldCursor = 'pan' | 'spring' | 'sweep' | 'shake' | 'pet' | 'cloud' | 'find' | 'look';
 
 /**
  * The living world: owns every land, creature and effect, keeps them in step with the
@@ -69,6 +74,8 @@ export class World implements Stage {
   readonly ambience: Ambience;
   readonly floaters = new Floaters();
   readonly cutscene: Cutscene;
+  readonly play: Play;
+  readonly sealife: SeaLife;
 
   quality: Quality = RENDER.quality[2];
   time = 0;
@@ -121,6 +128,8 @@ export class World implements Stage {
     this.happenings = new Happenings(this);
     this.ambience = new Ambience(this);
     this.cutscene = new Cutscene(this, this.ambience);
+    this.play = new Play(this);
+    this.sealife = new SeaLife(this, atlas);
     this.listen();
     this.rebuild();
   }
@@ -176,6 +185,8 @@ export class World implements Stage {
     this.actors.reset();
     this.happenings.reset();
     this.ambience.reset();
+    this.play.reset();
+    this.sealife.reset();
     this.floaters.clear();
     this.particles.clear();
     this.springTier = -1;
@@ -200,6 +211,7 @@ export class World implements Stage {
     }
     this.views.set(id, view);
     this.nav.addRegion(view.terrain);
+    this.sealife.addRegion(layout);
     for (const link of LINKS) {
       const a = this.views.get(link.a);
       const b = this.views.get(link.b);
@@ -383,15 +395,28 @@ export class World implements Stage {
       tap(this.game);
       return true;
     }
-    return false;
+    // Anything else under the pointer might enjoy a shake or a pat.
+    return this.play.tap(e);
   }
 
-  hoverAt(wx: number, wy: number): Hover | null {
-    if (this.onSpring(wx, wy)) return { kind: 'spring', id: 'spring' };
+  /**
+   * What is at a world point: the tooltip to show (if any) and the mouse pointer that says what
+   * a click would do. Checks things in the same order `tapAt` acts on them.
+   */
+  pointAt(wx: number, wy: number): { hover: Hover | null; cursor: WorldCursor } {
+    const idle: WorldCursor = this.play.sweeping ? 'sweep' : 'pan';
+    if (this.cutscene.active) return { hover: null, cursor: idle };
+    if (this.play.overCloud(wx, wy)) return { hover: null, cursor: 'cloud' };
+    if (this.happenings.over(wx, wy, this.season) || this.happenings.overMoon(wx, wy, this.moon)) return { hover: null, cursor: 'find' };
     const e = this.topEntityAt(wx, wy);
-    if (!e) return null;
-    if (BUILDING_BY_ID[e.tag]) return { kind: 'building', id: e.tag };
-    return e.secret ? { kind: 'thing', id: e.secret } : null;
+    const building = e && BUILDING_BY_ID[e.tag] ? ({ kind: 'building', id: e.tag } as const) : null;
+    const secret = e?.secret || (e?.tag === 'windmill' ? 's_windmill' : '');
+    if (secret && !this.game.s.journal[secret]) return { hover: building ?? { kind: 'thing', id: secret }, cursor: 'find' };
+    if (this.onSpring(wx, wy)) return { hover: { kind: 'spring', id: 'spring' }, cursor: 'spring' };
+    const offer = this.play.offer(e);
+    if (offer) return { hover: building, cursor: offer };
+    if (building) return { hover: building, cursor: 'look' };
+    return { hover: e?.secret ? { kind: 'thing', id: e.secret } : null, cursor: idle };
   }
 
   /* ───────────────────────────── Update ───────────────────────────── */
@@ -429,6 +454,8 @@ export class World implements Stage {
     this.actors.update(dt);
     this.happenings.update(dt);
     this.ambience.update(dt);
+    this.sealife.update(dt);
+    if (!this.cutscene.active) this.play.update(dt, this.showNumbers);
     this.particles.update(dt);
     this.floaters.update(dt);
     for (const v of this.views.values()) for (const e of v.decor) if (e.fps) e.frame = Math.floor(this.time * e.fps);
@@ -475,6 +502,8 @@ export class World implements Stage {
     for (const a of this.actors.list) pushMover(a);
     for (const e of this.happenings.entities()) pushMover(e);
     for (const e of this.ambience.entities()) pushMover(e);
+    for (const e of this.play.entities()) pushMover(e);
+    for (const e of this.sealife.entities()) pushMover(e);
     standing.sort((a, b) => a.y - b.y);
   }
 
@@ -580,8 +609,10 @@ export class World implements Stage {
     const { standing, flats, offsets } = this;
     const vy = (e: Entity) => e.y - oy + (offsets.get(e.region) ?? 0);
 
-    // 1. Water, then what it reflects.
-    this.water.draw(ctx, ox, oy, vw, vh, time);
+    // 1. The sea, what lives under its surface, the waves over that, and then what the water reflects.
+    this.water.drawBed(ctx, ox, oy, vw, vh);
+    if (this.quality.ambient > 0) this.sealife.drawUnder(ctx, ox, oy, vw, vh);
+    this.water.drawSurface(ctx, ox, oy, vw, vh, time);
     const flags = this.game.mods.flags;
     const seasonIndex = season.blend > 0.5 ? season.b : season.a;
     // Stale caches are refreshed a couple per frame, so a change of light never causes a hitch.

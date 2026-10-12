@@ -228,10 +228,10 @@ export class Happenings {
   }
 
   /**
-   * Handle a tap at a world point. Returns true when something here responded.
-   * Checks timed events first, then the rainbow's end and the merchant.
+   * Whatever at a world point would answer a tap: a timed event first, then the rainbow's end,
+   * then the merchant. Null when there is nothing of the sort here.
    */
-  tap(wx: number, wy: number, season: SeasonBlend): boolean {
+  private find(wx: number, wy: number, season: SeasonBlend): Happening | 'rainbow' | 'merchant' | null {
     for (let i = this.list.length - 1; i >= 0; i--) {
       const h = this.list[i];
       if (h.done || h.left <= 0) continue;
@@ -239,30 +239,43 @@ export class Happenings {
       const sprite = e.frames[e.frame % e.frames.length][season.a];
       // Fast, small things get a generous hit box.
       const near = e.hidden ? Math.abs(wx - e.x) < 9 && Math.abs(wy - e.y) < 9 : hits(e, sprite, wx, wy, h.id === 'golden' || h.id === 'star' ? 7 : 3);
-      if (!near) continue;
-      this.take(h);
-      return true;
+      if (near) return h;
     }
-    if (this.rainbow && Math.abs(wx - this.rainbow.x) < 12 && Math.abs(wy - this.rainbow.y) < 12) {
-      const { x, y } = this.rainbow;
+    if (this.rainbow && Math.abs(wx - this.rainbow.x) < 12 && Math.abs(wy - this.rainbow.y) < 12) return 'rainbow';
+    for (const key of ['cart', 'peddler']) {
+      const e = this.fixtures.get(key);
+      if (e && hits(e, e.frames[0][season.a], wx, wy, 3)) return 'merchant';
+    }
+    return null;
+  }
+
+  /** Is there something here that would reward a tap? */
+  over(wx: number, wy: number, season: SeasonBlend): boolean {
+    return this.find(wx, wy, season) !== null;
+  }
+
+  /** Handle a tap at a world point. Returns true when something here responded. */
+  tap(wx: number, wy: number, season: SeasonBlend): boolean {
+    const found = this.find(wx, wy, season);
+    if (!found) return false;
+    if (found === 'merchant') this.onMerchant();
+    else if (found === 'rainbow') {
+      const { x, y } = this.rainbow!;
       this.rainbow = null;
       collect(this.s.game, 'rainbow');
       this.s.burst('treasure', x, y);
-      return true;
-    }
-    for (const key of ['cart', 'peddler']) {
-      const e = this.fixtures.get(key);
-      if (e && hits(e, e.frames[0][season.a], wx, wy, 3)) {
-        this.onMerchant();
-        return true;
-      }
-    }
-    return false;
+    } else this.take(found);
+    return true;
+  }
+
+  /** Is the moon's reflection (a secret, only there at night) under this point? */
+  overMoon(wx: number, wy: number, moon: readonly [number, number] | null): boolean {
+    return !!moon && this.s.night >= 0.7 && Math.abs(wx - moon[0]) <= 8 && Math.abs(wy - moon[1]) <= 6;
   }
 
   /** The moon's reflection on the pond is a secret; only there at night. */
   tapMoon(wx: number, wy: number, moon: readonly [number, number] | null): boolean {
-    if (!moon || this.s.night < 0.7 || Math.abs(wx - moon[0]) > 8 || Math.abs(wy - moon[1]) > 6) return false;
+    if (!moon || !this.overMoon(wx, wy, moon)) return false;
     if (findSecret(this.s.game, 's_moon')) this.s.burst('starCatch', moon[0], moon[1]);
     return true;
   }

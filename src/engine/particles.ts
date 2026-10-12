@@ -136,7 +136,7 @@ export class PixelLayer {
 }
 
 export class ParticleSystem {
-  /** 0..1 — scales how many particles are actually spawned (the quality setting). */
+  /** 0..1: scales how many particles are actually spawned (the quality setting). */
   density = 1;
   count = 0;
 

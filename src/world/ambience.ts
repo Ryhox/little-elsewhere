@@ -76,16 +76,25 @@ export class Ambience {
 
   /* ───────────────────────────── Wildlife ───────────────────────────── */
 
+  /** The stretch of world a bird has to cross: everything on screen, with room to spare on both sides. */
+  private skyline(): { left: number; right: number; top: number; bottom: number } {
+    const cam = this.s.camera;
+    const margin = AMBIENT.birds.margin;
+    return { left: cam.toWorldX(0) - margin, right: cam.toWorldX(cam.viewW) + margin, top: cam.toWorldY(0), bottom: cam.toWorldY(cam.viewH) };
+  }
+
   private flock(): void {
     const cfg = AMBIENT.birds;
-    const box = this.s.extent();
+    const sky = this.skyline();
     const fromLeft = Math.random() < 0.5;
     const count = cfg.perFlock[0] + Math.floor(Math.random() * (cfg.perFlock[1] - cfg.perFlock[0] + 1));
     const speed = cfg.speed[0] + Math.random() * (cfg.speed[1] - cfg.speed[0]);
-    const y = box.y + Math.random() * box.h;
+    // Birds fly at altitude, so they are drawn that much higher than where they "are".
+    const y = sky.top + cfg.altitude + (0.15 + Math.random() * 0.7) * (sky.bottom - sky.top);
     const kind = Math.floor(Math.random() * BIRD_KINDS);
     for (let i = 0; i < count; i++) {
-      const entity = makeEntity(this.s.atlas, `bird_${kind}`, (fromLeft ? box.x - 30 : box.x + box.w + 30) - (fromLeft ? 1 : -1) * i * 12, y + (i % 2 ? 8 : -6) * Math.ceil(i / 2), { frames: 3, tag: 'bird', secret: cfg.secret });
+      // The leader starts at the very edge; the rest trail behind it, further off screen still.
+      const entity = makeEntity(this.s.atlas, `bird_${kind}`, (fromLeft ? sky.left : sky.right) - (fromLeft ? 1 : -1) * i * 12, y + (i % 2 ? 8 : -6) * Math.ceil(i / 2), { frames: 3, tag: 'bird', secret: cfg.secret });
       entity.lift = cfg.altitude;
       entity.flip = !fromLeft;
       this.birds.push({ entity, vx: fromLeft ? speed : -speed, vy: (Math.random() - 0.5) * 6, phase: Math.random() * 6 });
@@ -109,20 +118,21 @@ export class Ambience {
   private updateWildlife(dt: number): void {
     const cfg = AMBIENT.birds;
     const flags = this.s.game.mods.flags;
-    const flocks = (cfg.flocks + (flags[cfg.bonusFlag] ? 1 : 0) + (flags[cfg.migrationFlag] ? 2 : 0)) * this.s.ambient;
+    const flocks = (cfg.flocks + (flags[cfg.bonusFlag] ? 0.5 : 0) + (flags[cfg.migrationFlag] ? 1 : 0)) * this.s.ambient;
     this.flockClock -= dt * flocks;
     if (this.flockClock <= 0 && this.s.night < 0.6) {
-      this.flockClock = 9 + Math.random() * 10;
+      this.flockClock = cfg.every[0] + Math.random() * (cfg.every[1] - cfg.every[0]);
       this.flock();
     }
-    const box = this.s.extent();
+    const sky = this.skyline();
     for (let i = this.birds.length - 1; i >= 0; i--) {
       const b = this.birds[i];
       const e = b.entity;
       e.x += b.vx * dt;
       e.y += (b.vy + Math.sin(this.s.time * 1.3 + b.phase) * 5) * dt;
       e.frame = Math.floor((this.s.time + b.phase) * 9) % 3;
-      if (e.x < box.x - 80 || e.x > box.x + box.w + 80) this.birds.splice(i, 1);
+      // A bird is done once it has flown out past the far edge of the screen (wherever the screen is by then).
+      if (b.vx > 0 ? e.x > sky.right : e.x < sky.left) this.birds.splice(i, 1);
     }
 
     this.syncButterflies();

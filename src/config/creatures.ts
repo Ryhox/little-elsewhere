@@ -70,8 +70,12 @@ export const TINKER = { sprite: 'tinker', speed: 18 } as const;
 
 /** Ambient wildlife that is always around, scaled by the quality setting. */
 export const AMBIENT = {
-  /** Birds cross the sky in small flocks: [flocks at once, birds per flock]. More with bird baths and migration. */
-  birds: { flocks: 2, perFlock: [1, 4] as [number, number], speed: [26, 40] as [number, number], altitude: 34, bonusFlag: 'birdbaths', migrationFlag: 'migration', secret: 's_bird' },
+  /**
+   * Birds cross the sky in small flocks, one every `every` seconds (sooner with bird baths and
+   * migration). They fly in from beyond the edge of the screen and leave the same way, `margin` px
+   * past whatever is visible, so none ever appears or vanishes in view.
+   */
+  birds: { flocks: 1, perFlock: [1, 3] as [number, number], every: [16, 30] as [number, number], speed: [26, 40] as [number, number], altitude: 34, margin: 48, bonusFlag: 'birdbaths', migrationFlag: 'migration', secret: 's_bird' },
   /** Butterflies drift between flowers. `always` are present from the start; the rest need the flag. */
   butterflies: { always: 2, withFlag: 10, flag: 'butterflies', speed: 11, altitude: 7 },
   /** Fireflies drift up at night once the flag is set: particles per second per discovered land. */

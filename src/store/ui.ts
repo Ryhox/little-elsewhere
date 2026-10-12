@@ -55,7 +55,18 @@ interface UIState {
   panel: PanelId;
   panelOpen: boolean;
   setPanel(panel: PanelId): void;
+  /** Open the menu on a tab (unlike `setPanel`, never closes it). */
+  openPanel(panel: PanelId): void;
   togglePanel(): void;
+  /** The teacher is talking in the middle of the screen (her card in the corner waits out of sight). */
+  guideTalking: boolean;
+  setGuideTalking(talking: boolean): void;
+  /** Bumped to ask for the current lesson to be said again. */
+  guideReplay: number;
+  replayGuide(): void;
+  /** Bumped to make the thing the lesson asks for scroll into view. */
+  guidePing: number;
+  pingGuide(): void;
   /** "Just watch" mode: every menu hidden. */
   zen: boolean;
   setZen(zen: boolean): void;
@@ -93,7 +104,14 @@ export const useUI = create<UIState>((set, get) => ({
   panel: 'build',
   panelOpen: true,
   setPanel: (panel) => set((s) => ({ panel, panelOpen: s.panel === panel ? !s.panelOpen : true })),
+  openPanel: (panel) => set({ panel, panelOpen: true }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
+  guideTalking: false,
+  setGuideTalking: (guideTalking) => set({ guideTalking }),
+  guideReplay: 0,
+  replayGuide: () => set((s) => ({ guideReplay: s.guideReplay + 1 })),
+  guidePing: 0,
+  pingGuide: () => set((s) => ({ guidePing: s.guidePing + 1 })),
   zen: false,
   setZen: (zen) => set({ zen, tip: null }),
   buyAmount: 1,

@@ -9,7 +9,9 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "balance": "tsx scripts/balance.ts"
+    "balance": "tsx scripts/balance.ts",
+    "portrait": "tsx scripts/portrait.ts",
+    "site": "tsx scripts/site.ts"
   },
   "dependencies": {
     "@fontsource/pixelify-sans": "^5.3.0",
