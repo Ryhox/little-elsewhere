@@ -1,0 +1,214 @@
+@import 'tailwindcss';
+@import '@fontsource/pixelify-sans/400.css';
+@import '@fontsource/pixelify-sans/600.css';
+@import '@fontsource/pixelify-sans/700.css';
+
+@theme {
+  --font-pixel: 'Pixelify Sans', ui-monospace, monospace;
+  --color-ink: #4a2f2a;
+  --color-ink-soft: #7a5a48;
+  --color-parchment: #f7e8c6;
+  --color-parchment-shade: #e6d0a2;
+  --color-parchment-deep: #d0b481;
+  --color-night: #2c2238;
+  --color-night-soft: #5c4a70;
+  --color-cream: #fff7e2;
+  --color-gold: #f2bc36;
+  --color-leaf: #52ae35;
+  --color-rose: #e04a3c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #2e5bb5;
+  font-family: var(--font-pixel);
+  color: var(--color-ink);
+  -webkit-font-smoothing: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+img,
+canvas {
+  image-rendering: pixelated;
+}
+
+/* ─────────── The hand-painted interface skin (9-slice borders painted in src/art/ui.ts) ─────────── */
+
+.skin-panel {
+  border: 15px solid transparent;
+  border-image: var(--skin-panel) 15 fill / 15px stretch;
+}
+
+.skin-plaque {
+  border: 12px solid transparent;
+  border-image: var(--skin-plaque) 12 fill / 12px stretch;
+  color: var(--color-cream);
+}
+
+.skin-slot {
+  border: 9px solid transparent;
+  border-image: var(--skin-slot) 9 fill / 9px stretch;
+}
+
+.skin-slot-lit {
+  border: 9px solid transparent;
+  border-image: var(--skin-slot-lit) 9 fill / 9px stretch;
+}
+
+.btn {
+  --skin: var(--skin-btn-tan);
+  --skin-down: var(--skin-btn-tan-down);
+  border: 12px solid transparent;
+  border-image: var(--skin) 12 fill / 12px stretch;
+  padding: 0 4px 3px;
+  font-family: var(--font-pixel);
+  font-weight: 600;
+  line-height: 1.1;
+  color: #2b1a16;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 80ms;
+}
+
+.btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn:active:not(:disabled),
+.btn.is-down {
+  border-image-source: var(--skin-down);
+  padding: 3px 4px 0;
+}
+
+.btn:disabled {
+  --skin: var(--skin-btn-off);
+  --skin-down: var(--skin-btn-off-down);
+  color: #5c5651;
+  cursor: default;
+}
+
+.btn-green {
+  --skin: var(--skin-btn-green);
+  --skin-down: var(--skin-btn-green-down);
+}
+
+.btn-gold {
+  --skin: var(--skin-btn-gold);
+  --skin-down: var(--skin-btn-gold-down);
+}
+
+.btn-red {
+  --skin: var(--skin-btn-red);
+  --skin-down: var(--skin-btn-red-down);
+  color: #fff3ea;
+}
+
+.btn-blue {
+  --skin: var(--skin-btn-blue);
+  --skin-down: var(--skin-btn-blue-down);
+  color: #f2f8ff;
+}
+
+/* ─────────── Small pieces ─────────── */
+
+.scroll-pixel {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #9d6236 #e6d0a2;
+  touch-action: pan-y;
+}
+
+.scroll-pixel::-webkit-scrollbar {
+  width: 9px;
+}
+
+.scroll-pixel::-webkit-scrollbar-track {
+  background: #e6d0a2;
+}
+
+.scroll-pixel::-webkit-scrollbar-thumb {
+  background: #9d6236;
+  border: 2px solid #e6d0a2;
+}
+
+.text-shadow {
+  text-shadow: 0 2px 0 #241a2e;
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes bump {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
+.anim-pop {
+  animation: pop-in 220ms steps(6) both;
+}
+
+.anim-toast {
+  animation: toast-in 240ms steps(5) both;
+}
+
+.anim-bump {
+  animation: bump 260ms steps(5);
+}
+
+.anim-shimmer {
+  animation: shimmer 1.4s steps(6) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-pop,
+  .anim-toast,
+  .anim-bump,
+  .anim-shimmer {
+    animation: none;
+  }
+}

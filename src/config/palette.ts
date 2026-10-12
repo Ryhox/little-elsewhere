@@ -1,0 +1,99 @@
+import type { Ramp } from '@/engine/pix';
+
+/**
+ * The whole game is painted from these ramps (dark → light).
+ * Change a ramp here and every sprite that uses it follows.
+ */
+export const PAL = {
+  outline: 0x241a2e,
+  ink: 0x3a2636,
+  white: 0xffffff,
+
+  grass: [0x2a6a34, 0x3a8c36, 0x54aa38, 0x74c441, 0xa0da54, 0xd0ee80],
+  grassAutumn: [0x7a5a22, 0x9c7a2a, 0xbb9636, 0xd4b148, 0xe6cc66, 0xf3e493],
+  grassWinter: [0x9fb4cf, 0xb9cbe0, 0xd2e0ee, 0xe4eef7, 0xf2f8fc, 0xffffff],
+
+  leaf: [0x14443c, 0x1d653a, 0x2d8a38, 0x52ae35, 0x8cd040, 0xd2ef6e],
+  leafDeep: [0x10363e, 0x175546, 0x227848, 0x3c9a46, 0x6ebd4a, 0xb2df6a],
+  pine: [0x123438, 0x184f42, 0x226e48, 0x3a904a, 0x6ab452],
+  blossom: [0x8f3560, 0xc4507a, 0xea7f9c, 0xf9b0bf, 0xffdfe2, 0xfff4f2],
+  autumnOrange: [0x7a2e1e, 0xae481f, 0xd97025, 0xf09f30, 0xfbcf58, 0xfdeb9a],
+  autumnRed: [0x5a1a2a, 0x8a2532, 0xbc3a34, 0xdf603a, 0xf49252, 0xfcc487],
+  autumnPlum: [0x47193d, 0x742856, 0xa3386a, 0xcd557c, 0xec8a9a, 0xfbc0c4],
+  autumnGold: [0x7c5216, 0xb07e20, 0xdaab2c, 0xf2d04a, 0xfbec86, 0xfffbc8],
+  frost: [0x55678a, 0x7f96b8, 0xb3c8de, 0xdbe8f3, 0xf3f9fd, 0xffffff],
+
+  bark: [0x35241f, 0x55382b, 0x775436, 0x9a7446, 0xbd9a62],
+  barkPale: [0x6e6a72, 0x9c9aa0, 0xc8c8c8, 0xe9e7e0, 0xfaf8f2],
+  wood: [0x4e2c20, 0x754428, 0x9d6236, 0xc48748, 0xe2b066, 0xf4d691],
+  woodDark: [0x2e1c1e, 0x4a2c26, 0x6b4230, 0x8c5c3c, 0xae7c50],
+
+  dirt: [0x7e5232, 0xa57242, 0xc89455, 0xdfb672, 0xefd294],
+  cliff: [0x3f2b29, 0x5e4032, 0x7d583c, 0x9c744a, 0xb8935e],
+  sand: [0xb8935e, 0xd9b877, 0xeed69a, 0xf9ebbe, 0xfff8dd],
+  soil: [0x3c2622, 0x573628, 0x744a30, 0x8f603c],
+  stone: [0x383f52, 0x545e74, 0x7a8597, 0xa4aeb8, 0xcdd4d6, 0xeef1ee],
+  moss: [0x2b5a3c, 0x41803f, 0x64a548, 0x93c65a],
+
+  water: [0x24448f, 0x2e5bb5, 0x3b78d0, 0x539be4, 0x86c6f2, 0xd3f1ff],
+  magic: [0x15608f, 0x1f93c2, 0x47c9e3, 0x95f0f2, 0xe2ffff],
+  glow: [0x2b6a8a, 0x3fb7a8, 0x8cecb0, 0xe6ffd0],
+
+  plaster: [0x9c8672, 0xc4b092, 0xe6d6b6, 0xf7edd4, 0xfffaeb],
+  roofRed: [0x681d26, 0x96292b, 0xc44133, 0xe66a42, 0xf69a5e],
+  roofTeal: [0x15404c, 0x1d5e68, 0x2a8882, 0x48b39a, 0x84d8b0],
+  roofPlum: [0x30214c, 0x493374, 0x694c9c, 0x9172c2, 0xbca2e3],
+  roofBlue: [0x1e2f66, 0x2b488f, 0x3f6bbd, 0x63a0e0, 0xa3d2f6],
+  thatch: [0x7a5c20, 0xab852b, 0xd3b040, 0xecd266, 0xfaeda2],
+
+  gold: [0x8f5412, 0xc8841c, 0xf2bc36, 0xffe676, 0xfffbd2],
+  cream: [0xb89a72, 0xdcc49a, 0xf3e3c0, 0xfff7e2],
+  pink: [0x9c3b62, 0xd1587c, 0xf08aa0, 0xfbb8c0, 0xffe3e3],
+  red: [0x7a1c2c, 0xb42d36, 0xe04a3c, 0xf7825a, 0xfdbb8c],
+  orange: [0x8f3d16, 0xc9641c, 0xf08c28, 0xfbb84a, 0xfde08c],
+  yellow: [0x9a6a14, 0xd29e1e, 0xf5cf3a, 0xfdea7a, 0xfffbc4],
+  blue: [0x24357a, 0x3554b0, 0x4e80dc, 0x7cb2f2, 0xbfe0ff],
+  violet: [0x3b2468, 0x5c3a9a, 0x8659c8, 0xb088e6, 0xdcc2fa],
+  lilac: [0x5a4a8c, 0x8872bb, 0xb5a0de, 0xdccdf3, 0xf5eefd],
+  teal: [0x154a52, 0x1f7272, 0x34a091, 0x64caa8, 0xa6ecc6],
+  night: [0x161a3c, 0x23285a, 0x343c80, 0x5560aa, 0x8c98d8],
+  metal: [0x2e3344, 0x4c5468, 0x7a8496, 0xaeb8c4, 0xe2e8ec],
+  copper: [0x5e2e1c, 0x8f4a26, 0xc0703a, 0xe29c5c, 0xf6cc92],
+  crystal: [0x2f3f9c, 0x4c6fdc, 0x79a8f6, 0xb4dcff, 0xf0faff],
+  ember: [0x8f2a12, 0xd4541a, 0xf6922a, 0xffd25a, 0xfff6c2],
+} as const satisfies Record<string, number | Ramp>;
+
+export type RampName = { [K in keyof typeof PAL]: (typeof PAL)[K] extends number ? never : K }[keyof typeof PAL];
+
+/** Foliage ramps per season: [lush, autumn, winter]. Autumn picks one by seed for variety. */
+export const AUTUMN_FOLIAGE: readonly Ramp[] = [PAL.autumnOrange, PAL.autumnRed, PAL.autumnPlum, PAL.autumnGold];
+
+/** Ground looks. `grass` holds the ramp for each season: lush, autumn, winter. */
+export interface GroundLook {
+  grass: readonly [Ramp, Ramp, Ramp];
+  path: Ramp;
+  cliff: Ramp;
+}
+
+const meadow: Ramp = [PAL.grass[1], PAL.grass[2], PAL.grass[3], PAL.grass[4], PAL.grass[5], 0xe6f6a0];
+const moss: Ramp = [PAL.leafDeep[0], PAL.leafDeep[1], PAL.leafDeep[2], PAL.leafDeep[3], PAL.leafDeep[4], PAL.leafDeep[5]];
+const sand: Ramp = [PAL.sand[0], PAL.sand[1], PAL.sand[2], PAL.sand[3], PAL.sand[4], PAL.white];
+const skyRock: Ramp = [PAL.violet[0], PAL.violet[1], PAL.lilac[1], PAL.lilac[2], PAL.lilac[3]];
+const seasons = (lush: Ramp): readonly [Ramp, Ramp, Ramp] => [lush, PAL.grassAutumn, PAL.grassWinter];
+
+export const GROUNDS: Record<string, GroundLook> = {
+  grass: { grass: seasons(PAL.grass), path: PAL.dirt, cliff: PAL.cliff },
+  meadow: { grass: seasons(meadow), path: PAL.dirt, cliff: PAL.cliff },
+  moss: { grass: seasons(moss), path: PAL.cliff, cliff: PAL.cliff },
+  sand: { grass: [sand, sand, PAL.grassWinter], path: PAL.dirt, cliff: PAL.sand },
+  sky: { grass: seasons(meadow), path: PAL.dirt, cliff: skyRock },
+};
+
+/** Light tones for the lighting pass (0xRRGGBB). */
+export const LIGHT_TONES: Record<string, number> = {
+  warm: 0xffc66a,
+  cool: 0x8fe8ff,
+  moon: 0xc9b8ff,
+  green: 0xb4ff9a,
+  gold: 0xffe27a,
+};
