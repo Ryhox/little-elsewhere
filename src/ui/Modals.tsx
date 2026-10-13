@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { rt } from '@/app/runtime';
 import { ACHIEVEMENTS } from '@/config/achievements';
 import { GUIDE_ENDING, GUIDE_WELCOME } from '@/config/guide';
@@ -13,14 +13,20 @@ import { tokenBreakdown } from '@/game/prestige';
 import { RES } from '@/game/types';
 import { useUI } from '@/store/ui';
 import { TeacherSays } from './Guide';
-import { Constellations, EvergreenTree } from './Tree';
-import { Btn, CostLine, Icon, useTick } from './widgets';
+import { Constellations, EvergreenTree, PermCard, StarCard } from './Tree';
+import { Btn, CostLine, Icon, useLayout, useTick } from './widgets';
 
-/** A dialog. `wide` is for the big boards; `talk` makes room for Claudia and what she says. */
-function Frame({ title, children, wide, talk, onClose }: { title: string; children: ReactNode; wide?: boolean; talk?: boolean; onClose?: () => void }) {
+/**
+ * A dialog. `wide` is for the big boards; `talk` makes room for Claudia and what she says.
+ * `footer` stays in sight under the part that scrolls.
+ */
+function Frame({ title, children, wide, talk, footer, onClose }: { title: string; children: ReactNode; wide?: boolean; talk?: boolean; footer?: ReactNode; onClose?: () => void }) {
+  const { compact, safe } = useLayout();
+  // On a small screen a dialog may use nearly all of it, short of the notch and the home bar.
+  const room = compact ? { paddingLeft: safe.left + 8, paddingTop: safe.top + 8, paddingRight: safe.right + 8, paddingBottom: safe.bottom + 8 } : undefined;
   return (
-    <div className="absolute inset-0 z-30 grid place-items-center bg-[#161a3c]/55 p-3" onPointerDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className={`skin-panel anim-pop flex max-h-full w-full flex-col ${wide ? 'max-w-[960px]' : talk ? 'max-w-[640px]' : 'max-w-[460px]'}`}>
+    <div className="pointer-events-auto absolute inset-0 z-30 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center bg-[#161a3c]/55 p-3" style={room} onPointerDown={(e) => e.target === e.currentTarget && onClose?.()}>
+      <div className={`skin-panel anim-pop flex max-h-full w-full min-w-0 flex-col ${wide ? 'max-w-[960px]' : talk ? 'max-w-[640px]' : 'max-w-[460px]'}`}>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="text-2xl leading-none font-bold">{title}</h2>
           {onClose && (
@@ -30,8 +36,30 @@ function Frame({ title, children, wide, talk, onClose }: { title: string; childr
           )}
         </div>
         <div className="scroll-pixel min-h-0 flex-1 pr-1">{children}</div>
+        {footer}
       </div>
     </div>
+  );
+}
+
+/**
+ * The two big boards. A finger picks a node first and buys it from the card underneath, where
+ * there is room to say what it does; a mouse hovers and clicks, and needs no card.
+ */
+function BoardModal({ kind, close }: { kind: 'tree' | 'stars'; close(): void }) {
+  const touch = useUI((s) => s.touch);
+  const [picked, setPicked] = useState<string | null>(null);
+  if (kind === 'tree') {
+    return (
+      <Frame title="The Evergreen tree" wide onClose={close} footer={touch ? <PermCard id={picked} /> : undefined}>
+        <EvergreenTree picked={picked} onPick={setPicked} />
+      </Frame>
+    );
+  }
+  return (
+    <Frame title="Constellations" wide onClose={close} footer={touch ? <StarCard id={picked} /> : undefined}>
+      <Constellations picked={picked} onPick={setPicked} />
+    </Frame>
   );
 }
 
@@ -187,6 +215,7 @@ function BlessingModal({ close }: { close(): void }) {
 /** The closing words, spoken by Claudia once the Elder Tree has bloomed. Play carries on afterwards. */
 function EndingModal({ close }: { close(): void }) {
   const { s } = rt().game;
+  const compactEnding = useLayout().compact;
   const rows: [string, string][] = [
     ['Time played', fmtTime(s.stats.endedAt ?? s.stats.playSeconds ?? 0)],
     ['Seasons turned', String(s.seasons)],
@@ -198,8 +227,8 @@ function EndingModal({ close }: { close(): void }) {
     <Frame title="The Everbloom" talk>
       <div className="flex flex-col gap-2">
         <TeacherSays anim={GUIDE_ENDING[0]} words={GUIDE_ENDING[1]} />
-        <div className="flex items-center gap-3">
-          <Icon name="elder_bloom" size={96} />
+        <div className="flex items-center gap-3 compact:gap-2">
+          <Icon name="elder_bloom" size={compactEnding ? 64 : 96} />
           <div className="skin-slot grid flex-1 grid-cols-[1fr_auto] gap-x-3">
             {rows.map(([label, value]) => (
               <span key={label} className="contents">
@@ -244,17 +273,8 @@ export function Modals() {
     case 'ending':
       return <EndingModal close={close} />;
     case 'tree':
-      return (
-        <Frame title="The Evergreen tree" wide onClose={close}>
-          <EvergreenTree />
-        </Frame>
-      );
     case 'stars':
-      return (
-        <Frame title="Constellations" wide onClose={close}>
-          <Constellations />
-        </Frame>
-      );
+      return <BoardModal key={modal.kind} kind={modal.kind} close={close} />;
     default:
       return null;
   }

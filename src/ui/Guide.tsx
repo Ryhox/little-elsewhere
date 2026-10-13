@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { rt } from '@/app/runtime';
 import { PICTURE_FRAME, pictureFrame } from '@/art/teacherPicture';
 import { BUILDING_BY_ID } from '@/config/buildings';
-import { GUIDE, GUIDE_FAREWELL, GUIDE_FEEL, GUIDE_STAT, type GuideLine, type GuideWant } from '@/config/guide';
+import { GUIDE, GUIDE_FAREWELL, GUIDE_FEEL, GUIDE_STAT, wordsFor, type GuideLine, type GuideWant, type Words } from '@/config/guide';
 import { REGION_BY_ID } from '@/config/regions';
 import { TEACHER, TEACHER_PICTURE, teacherFace, teacherFrame, teacherIsPicture, type TeacherAnimName } from '@/config/teacher';
 import { UPGRADE_BY_ID } from '@/config/upgrades';
@@ -14,7 +14,7 @@ import { guideWant } from '@/game/progress';
 import type { Cost } from '@/game/types';
 import { useUI, type PanelId } from '@/store/ui';
 import { freeArea } from './layout';
-import { Bar, Btn, CostLine, Icon, useTick } from './widgets';
+import { Bar, Btn, CostLine, Icon, useLayout, useTick } from './widgets';
 
 /**
  * The tutorial as the player meets it: Claudia speaks each lesson in the middle of the
@@ -32,6 +32,9 @@ export function useGuide() {
   const hidden = !!game.s.stats[GUIDE_STAT.hidden];
   return { game, index, hidden, step: hidden ? null : (GUIDE[index] ?? null), want: guideWant(game.s) };
 }
+
+/** Her words as this player should hear them: about taps for a finger, about clicks for a mouse. */
+const phrase = (words: Words) => wordsFor(words, useUI.getState().touch, useUI.getState().layout.compact);
 
 /** Is this the very thing the current lesson asks the player to buy? */
 export const isWanted = (want: GuideWant | null, kind: 'building' | 'upgrade' | 'region', id: string) => !!want && (want as Partial<Record<string, string>>)[kind] === id;
@@ -171,11 +174,20 @@ function PictureTeacher({ anim, talking = false, scale, faceOnly = false }: Teac
   );
 }
 
+/** A conversation narrower than this (interface pixels) stacks her portrait over her words. */
+const TALK_ROW = 520;
+/**
+ * On an upright phone she speaks from the lower part of the screen, near the thumb, and this far
+ * above the tabs: clear of the row of abilities, with the purse and any messages free above her.
+ */
+const TALK_LIFT = 54;
+
 /**
  * Claudia saying something outside her lessons (a welcome back, the ending): her portrait
  * making a gesture, and her words appearing as she speaks them. A click brings out the rest at once.
  */
 export function TeacherSays({ anim, words }: { anim: TeacherAnimName; words: string }) {
+  const { compact, w, h } = useLayout();
   const [letters, setLetters] = useState(0);
   const spoken = letters >= words.length;
   useEffect(() => {
@@ -187,13 +199,13 @@ export function TeacherSays({ anim, words }: { anim: TeacherAnimName; words: str
     return () => clearTimeout(id);
   }, [letters, words, spoken]);
   return (
-    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-stretch" onClick={() => setLetters(words.length)}>
+    <div className={`flex gap-3 ${compact && w < TALK_ROW ? 'flex-col items-center' : 'flex-row items-stretch'}`} onClick={() => setLetters(words.length)}>
       <div className="guide-stage skin-slot shrink-0 self-center">
-        <Teacher anim={anim} talking={!spoken} scale={GUIDE_FEEL.portraitScale} />
+        <Teacher anim={anim} talking={!spoken} scale={compact && (w < TALK_ROW ? h < 700 : h < 380) ? GUIDE_FEEL.smallPortraitScale : GUIDE_FEEL.portraitScale} />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col self-stretch">
         <span className="text-2xl leading-none font-bold">{TEACHER.name}</span>
-        <div className="guide-bubble skin-slot-lit relative mt-2 flex-1 text-lg leading-snug">
+        <div className={`guide-bubble skin-slot-lit relative mt-2 flex-1 leading-snug ${compact ? 'text-base' : 'text-lg'}`}>
           {words.slice(0, letters)}
           {/* The words still to come hold their place, so the dialog never changes size as she speaks. */}
           <span className="invisible">{words.slice(letters)}</span>
@@ -238,9 +250,11 @@ function DrawnTeacher({ anim, talking = false, scale, faceOnly = false }: Teache
 /* ───────────────────────────── Her card in the corner ───────────────────────────── */
 
 const DOCK_ID = 'guide-card';
+/** The lesson card's id on the page, for whoever needs to know where it is. */
+export const GUIDE_CARD_ID = DOCK_ID;
 
-/** What the lesson asks the player to buy: its price, how close they are, and a way to be shown it. */
-function WantChip({ want }: { want: GuideWant }) {
+/** What the lesson asks the player to buy: its price, how close they are, and (unless `bare`) a way to be shown it. */
+function WantChip({ want, bare = false }: { want: GuideWant; bare?: boolean }) {
   const { game } = rt();
   const info = describeWant(game, want);
   const price = info.cost.dew ?? 0;
@@ -264,9 +278,11 @@ function WantChip({ want }: { want: GuideWant }) {
           </div>
         )}
       </div>
-      <Btn tone="gold" className="text-sm" onClick={() => showWant(info.panel)}>
-        Show me
-      </Btn>
+      {!bare && (
+        <Btn tone="gold" className="text-sm" onClick={() => showWant(info.panel)}>
+          Show me
+        </Btn>
+      )}
     </div>
   );
 }
@@ -276,6 +292,10 @@ export function GuideCard() {
   const { game, index, hidden, step, want } = useGuide();
   const talking = useUI((s) => s.guideTalking);
   const replay = useUI((s) => s.replayGuide);
+  const layout = useLayout();
+  const menuOpen = useUI((s) => s.panelOpen);
+  // Re-read when the player switches between mouse and finger: the reminder words follow.
+  useUI((s) => s.touch);
   const setHidden = (value: number) => {
     game.s.stats[GUIDE_STAT.hidden] = value;
     useUI.getState().bump();
@@ -289,9 +309,31 @@ export function GuideCard() {
       </button>
     );
   }
+  // On a small screen an open menu leaves little of the world to see. The card makes itself small while
+  // that lasts: who she is, what the lesson is, and what it wants bought (which the menu itself marks).
+  if (layout.compact && menuOpen) {
+    return (
+      <div id={DOCK_ID} className={`skin-panel pointer-events-auto max-w-full ${layout.dock === 'bottom' ? 'w-full max-w-[460px]' : 'w-[230px]'} ${talking ? 'invisible' : ''}`}>
+        <div className="flex items-center gap-2">
+          <button type="button" className="guide-stage skin-slot shrink-0" aria-label="Hear that again" onClick={replay}>
+            <Teacher anim={TEACHER.resting} scale={1} faceOnly />
+          </button>
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="text-[11px] font-bold tracking-wide text-ink-soft uppercase">
+              Lesson {index + 1} of {GUIDE.length}
+            </div>
+            <div className="truncate text-base font-bold">{step.title}</div>
+          </div>
+        </div>
+        {want ? <WantChip want={want} bare /> : <div className="mt-1 text-sm leading-snug">{phrase(step.text)}</div>}
+      </div>
+    );
+  }
   const world = rt().world;
+  // A desktop has room for a wide card beside the purse. A small screen gets one as wide as the screen, or a narrow one beside the world.
+  const width = !layout.compact ? 'w-[320px] xl:w-[460px]' : layout.dock === 'bottom' ? 'w-full max-w-[460px]' : 'w-[300px]';
   return (
-    <div id={DOCK_ID} className={`skin-panel pointer-events-auto w-[320px] max-w-full xl:w-[460px] ${talking ? 'invisible' : ''}`}>
+    <div id={DOCK_ID} className={`skin-panel pointer-events-auto max-w-full ${width} ${talking ? 'invisible' : ''}`}>
       <div className="flex gap-2">
         <button type="button" className="guide-stage skin-slot shrink-0 self-start" title="Hear that again" onClick={replay}>
           <Teacher anim={TEACHER.resting} scale={GUIDE_FEEL.cardScale} faceOnly />
@@ -301,12 +343,12 @@ export function GuideCard() {
             <span>
               Lesson {index + 1} of {GUIDE.length}
             </span>
-            <button type="button" className="underline" onClick={() => setHidden(1)}>
+            <button type="button" className="underline touch:-m-2 touch:p-2" onClick={() => setHidden(1)}>
               hide
             </button>
           </div>
           <div className="text-lg leading-tight font-bold">{step.title}</div>
-          <div className="text-sm leading-snug">{step.text}</div>
+          <div className="text-sm leading-snug">{phrase(step.text)}</div>
         </div>
       </div>
       {want && <WantChip want={want} />}
@@ -335,7 +377,7 @@ interface Script {
 /** Where the conversation is in its journey: finding its place, starting from the corner, in the middle, or leaving. */
 type Phase = 'measure' | 'from' | 'here' | 'to';
 
-const toBeat = ([anim, words]: GuideLine): Beat => ({ anim, words });
+const toBeat = ([anim, words]: GuideLine): Beat => ({ anim, words: phrase(words) });
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 /** Runs the conversations: decides when Claudia speaks, types out her lines and flies the card to and from its corner. */
@@ -343,6 +385,8 @@ export function GuideLayer() {
   const { game, index, hidden, want } = useGuide();
   const modal = useUI((s) => s.modal);
   const panelOpen = useUI((s) => s.panelOpen);
+  const layout = useLayout();
+  const hudRow = useUI((s) => s.hudRow);
   const replay = useUI((s) => s.guideReplay);
   const setTalking = useUI((s) => s.setGuideTalking);
   const [script, setScript] = useState<Script | null>(null);
@@ -393,7 +437,9 @@ export function GuideLayer() {
     const there = docks ? document.getElementById(DOCK_ID)?.getBoundingClientRect() : null;
     if (!here || !there?.width) return 'translateY(30px) scale(0.6)';
     const size = Math.max(0.25, Math.min(1, there.width / here.width));
-    return `translate(${Math.round(there.left + there.width / 2 - here.left - here.width / 2)}px, ${Math.round(there.top + there.height / 2 - here.top - here.height / 2)}px) scale(${size.toFixed(3)})`;
+    // Measured on the screen, but moved inside the interface, which may be drawn smaller than life.
+    const { scale } = useUI.getState().layout;
+    return `translate(${Math.round((there.left + there.width / 2 - here.left - here.width / 2) / scale)}px, ${Math.round((there.top + there.height / 2 - here.top - here.height / 2) / scale)}px) scale(${size.toFixed(3)})`;
   };
 
   // Arriving: find where the corner card is, start from there, then glide to the middle.
@@ -420,8 +466,10 @@ export function GuideLayer() {
     setTimeout(
       () => {
         setScript(null);
-        // Having said "got it", the player is taken straight to the thing to buy.
+        // Having said "got it", the player is taken straight to the thing to buy. Where the lesson is out in
+        // the world instead, a small screen puts its menu away, so that there is a world to do it in.
         if (shown && want) showWant(describeWant(game, want).panel);
+        else if (shown && GUIDE[index]?.point && useUI.getState().layout.compact && useUI.getState().panelOpen) useUI.getState().togglePanel();
       },
       reducedMotion() ? 0 : GUIDE_FEEL.flyMs,
     );
@@ -455,20 +503,32 @@ export function GuideLayer() {
   const glide = `transform ${GUIDE_FEEL.flyMs}ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity ${Math.round(GUIDE_FEEL.flyMs * 0.7)}ms ease`;
   const style: CSSProperties =
     phase === 'measure' ? { opacity: 0 } : phase === 'from' ? { transform: away, opacity: 0.2 } : phase === 'here' ? { transform: 'none', opacity: 1, transition: glide } : { transform: away, opacity: 0, transition: glide };
-  const free = freeArea(panelOpen);
+  const { compact, safe } = layout;
+  // A desktop keeps her clear of the menu. A small screen has no room for that: she speaks over the menu, clear only of its tabs and of the purse.
+  const room = compact
+    ? { left: safe.left + 8, top: hudRow + 6, right: (layout.dock === 'side' ? layout.tabs : safe.right) + 8, bottom: (layout.dock === 'bottom' ? layout.tabs + TALK_LIFT : safe.bottom) + 8 }
+    : { left: 12, top: 12, right: freeArea(layout, panelOpen).right + 12, bottom: 12 };
+  const wide = layout.w - room.left - room.right;
+  const high = layout.h - room.top - room.bottom;
+  // Side by side where there is room for it; stacked on a narrow screen, with a smaller portrait on a short one.
+  const row = !compact || wide >= TALK_ROW;
+  const portrait = compact && (row ? high < 300 : high < 600) ? GUIDE_FEEL.smallPortraitScale : GUIDE_FEEL.portraitScale;
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center transition-[padding] duration-[220ms] ease-out motion-reduce:transition-none" style={{ padding: 12, paddingRight: free.right + 12, paddingBottom: free.bottom + 12 }}>
-      <div ref={box} className="guide-talk skin-panel cursor-pointer pointer-events-auto w-[640px] max-w-full" style={style} onClick={next}>
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-stretch">
+    <div
+      className={`pointer-events-none absolute inset-0 z-20 transition-[padding] duration-[220ms] ease-out motion-reduce:transition-none ${!compact ? 'grid grid-cols-[minmax(0,1fr)] place-items-center' : layout.dock === 'bottom' ? 'flex items-end justify-center' : 'flex items-center justify-center'}`}
+      style={{ paddingLeft: room.left, paddingTop: room.top, paddingRight: room.right, paddingBottom: room.bottom }}
+    >
+      <div ref={box} className={`guide-talk skin-panel cursor-pointer pointer-events-auto ${compact ? 'w-full max-w-[640px]' : 'w-[640px] max-w-full'}`} style={style} onClick={next}>
+        <div className={`flex gap-3 ${row ? 'flex-row items-stretch' : 'flex-col items-center'}`}>
           <div className="guide-stage skin-slot shrink-0 self-center">
-            <Teacher anim={current.anim} talking={phase === 'here' && !spoken} scale={GUIDE_FEEL.portraitScale} />
+            <Teacher anim={current.anim} talking={phase === 'here' && !spoken} scale={portrait} />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col self-stretch">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-2xl leading-none font-bold">{TEACHER.name}</span>
               <span className="text-xs font-bold tracking-wide text-ink-soft uppercase">{script.docks ? `Lesson ${index + 1} of ${GUIDE.length}` : 'Goodbye'}</span>
             </div>
-            <div className="guide-bubble skin-slot-lit relative mt-2 flex-1 text-lg leading-snug">
+            <div className={`guide-bubble skin-slot-lit relative mt-2 flex-1 leading-snug ${compact ? 'text-base' : 'text-lg'}`}>
               {current.words.slice(0, letters)}
               {/* The words still to come hold their place, so the card never changes size as she speaks. */}
               <span className="invisible">{current.words.slice(letters)}</span>

@@ -43,6 +43,17 @@ const SUN_STEPS = 24;
 /** How far above its target the guide's arrow floats, in world pixels. */
 const POINTER_LIFT = 44;
 const CULL_MARGIN = 48;
+/** The land the spring is on: home, as far as the camera is concerned. */
+const HOME = 'clearing';
+/** The whole world, as something to frame (the other things are single lands, by their id). */
+const EVERYTHING = '*';
+/**
+ * Where a blunt fingertip may have meant to tap, as offsets from the point it touched in
+ * multiples of its reach: the point itself and a ring close around it, then a ring further out.
+ */
+const ring = (r: number): Point[] => [[r, 0], [-r, 0], [0, r], [0, -r], [r * 0.7, r * 0.7], [-r * 0.7, r * 0.7], [r * 0.7, -r * 0.7], [-r * 0.7, -r * 0.7]];
+const NEAR: readonly Point[] = [[0, 0], ...ring(0.5)];
+const FAR: readonly Point[] = ring(1);
 const SYNC_EVERY = 1;
 /** Rainbow bands, outermost first. */
 const RAINBOW = [PAL.red[2], PAL.orange[2], PAL.yellow[2], PAL.leaf[4], PAL.blue[3], PAL.violet[2]];
@@ -86,6 +97,14 @@ export class World implements Stage {
   /** Follow new lands with the camera. */
   autoFrame = true;
   showNumbers = true;
+  /** The screen is small, or played with fingers: lands are framed closer, and one at a time once they no longer all fit. */
+  handheld = false;
+  /** Device pixels per CSS pixel on this screen. */
+  ratio = 1;
+  /** What the camera last framed by itself: a land's id, or everything. Framed again when the screen changes shape. */
+  private framed: string = EVERYTHING;
+  /** It was stepped right back to show the whole world, however small that makes it. */
+  private overview = false;
 
   private readonly water = new Water();
   private readonly shadows: Shadows;
@@ -170,7 +189,7 @@ export class World implements Stage {
     const x = land.terrain.layout.at[0] + ELDER.at[0];
     const y = land.terrain.layout.at[1] + ELDER.at[1];
     this.camera.lookAt(x, y - 40);
-    this.camera.targetZoom = Math.max(this.camera.targetZoom, 3);
+    this.camera.targetZoom = Math.max(this.camera.targetZoom, 3 * (this.handheld ? Math.round(this.ratio) : 1));
     for (let i = 0; i < 6; i++) this.burst('bloom', x + (Math.random() - 0.5) * 80, y - 60 - Math.random() * 50, 3);
     this.burst('tokens', x, y - 30, 2);
     this.actors.cheer('heart', 1);
@@ -225,7 +244,9 @@ export class World implements Stage {
     const pond = this.views.get('pond');
     this.moon = pond ? [pond.terrain.layout.at[0] + 30, pond.terrain.layout.at[1] + 18] : null;
     if (animate) {
-      if (this.autoFrame) this.frameAll();
+      // Where every land still fits the screen, show them all. On a small one, go and look at the newcomer.
+      if (this.autoFrame && this.roomForAll()) this.frameAll();
+      else if (this.autoFrame) this.frameLand(id);
       this.actors.sync();
     }
   }
@@ -333,8 +354,52 @@ export class World implements Stage {
     return x1 < x0 ? { x: 0, y: 0, w: WORLD.width, h: WORLD.height } : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   }
 
+  /** Room kept around whatever the camera frames, in world pixels. */
+  private get padding(): number {
+    return this.handheld ? RENDER.camera.snugPadding : RENDER.camera.padding;
+  }
+
+  /** Can every discovered land be shown at once at a size worth looking at? On a big screen, always. */
+  private roomForAll(): boolean {
+    return !this.handheld || this.camera.fit(this.extent(), this.padding) >= this.camera.frameFloor;
+  }
+
+  /** Frame one land (the spring's own, if that one is not there). */
+  private frameLand(id: string): void {
+    const view = this.views.get(id) ?? this.views.get(HOME);
+    if (!view) return this.camera.frame(this.extent(), this.padding);
+    this.framed = view.terrain.id;
+    this.overview = false;
+    const b = view.terrain.bounds;
+    const lift = view.terrain.layout.floating ? WORLD.floatHeight : 0;
+    this.camera.frame({ x: b.x, y: b.y - lift, w: b.w, h: b.h + lift }, this.padding);
+  }
+
+  /** Show every discovered land. A small screen that cannot fit them all at a sensible size shows the spring's island instead. */
   frameAll(): void {
-    this.camera.frame(this.extent(), RENDER.camera.padding);
+    if (!this.roomForAll()) return this.frameLand(HOME);
+    this.framed = EVERYTHING;
+    this.overview = false;
+    this.camera.frame(this.extent(), this.padding);
+  }
+
+  /** The screen changed shape: frame again whatever was framed before. */
+  reframe(): void {
+    if (this.overview) this.camera.frame(this.extent(), this.padding, this.camera.minZoom);
+    else if (this.framed === EVERYTHING) this.frameAll();
+    else this.frameLand(this.framed);
+  }
+
+  /**
+   * The home button. On a big screen it shows the whole world. On a small one that cannot, it
+   * goes home to the spring, and pressed again from there it steps right back for the overview.
+   */
+  home(): void {
+    if (this.roomForAll()) return this.frameAll();
+    if (this.camera.auto && this.framed === HOME && !this.overview) {
+      this.overview = true;
+      this.camera.frame(this.extent(), this.padding, this.camera.minZoom);
+    } else this.frameLand(HOME);
   }
 
   randomSpot(): Spot | null {
@@ -374,6 +439,35 @@ export class World implements Stage {
       const e = this.standing[i];
       if (e.born > this.time || e.alpha < 0.5) continue;
       if (hits(e, currentSprite(e, this.season), wx, wy - (this.offsets.get(e.region) ?? 0), e.secret ? 5 : 0)) return e;
+    }
+    return null;
+  }
+
+  /**
+   * A tap by a finger, which is blunter than a mouse pointer: if nothing answers at the very point
+   * touched, the nearest thing within `reach` world pixels that would answer is taken to be meant.
+   */
+  touchAt(wx: number, wy: number, reach: number): boolean {
+    const answers = (probes: readonly Point[]): boolean => {
+      for (const [dx, dy] of probes) {
+        const x = wx + dx * reach;
+        const y = wy + dy * reach;
+        const { cursor } = this.pointAt(x, y);
+        if (cursor === 'spring' || cursor === 'find' || cursor === 'shake' || cursor === 'pet') return this.tapAt(x, y);
+      }
+      return false;
+    };
+    if (answers(NEAR)) return true;
+    // A finger squarely on a building is asking about the building, not reaching for the creature beside it.
+    if (this.pointAt(wx, wy).hover) return false;
+    return answers(FAR);
+  }
+
+  /** What a finger near this point would like to read about: the nearest thing within `reach` that has a tooltip. */
+  hoverNear(wx: number, wy: number, reach: number): Hover | null {
+    for (const [dx, dy] of [...NEAR, ...FAR]) {
+      const { hover } = this.pointAt(wx + dx * reach, wy + dy * reach);
+      if (hover) return hover;
     }
     return null;
   }
@@ -809,6 +903,7 @@ export class World implements Stage {
     // 10. Scale the finished view up to the screen, then add crisp screen-space text.
     screen.imageSmoothingEnabled = false;
     screen.drawImage(this.buffer, 0, 0, vw, vh, Math.round((ox - left) * zoom), Math.round((oy - top) * zoom), vw * zoom, vh * zoom);
-    this.floaters.draw(screen, cam, this.font, Math.max(2, Math.round(zoom * 0.75)));
+    // Text is drawn straight onto the screen. On a phone's dense screen it needs more pixels to stay the same readable size.
+    this.floaters.draw(screen, cam, this.font, Math.max(this.handheld ? Math.round(2 * this.ratio) : 2, Math.round(zoom * 0.75)));
   }
 }

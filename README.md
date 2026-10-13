@@ -35,6 +35,8 @@ basics in six short lessons, and she is there again when you come back after tim
 - When progress slows, press Rebirth. The world starts over from the spring, but your Evergreen
   Tokens and what you grew with them stay for good.
 - Close the tab whenever you like. The world keeps busy while you are away.
+- It plays on a phone or a tablet too, upright or on its side: tap, drag to look around, pinch
+  to zoom, and rest a finger on anything to read about it.
 
 ## Running it
 

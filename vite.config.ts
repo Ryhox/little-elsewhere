@@ -37,6 +37,12 @@ function siteHead(): Plugin {
       meta('description', SITE.description),
       meta('author', SITE.author),
       meta('theme-color', SITE.color),
+      // Added to a phone's home screen, the game opens like an app: no browser bars, the sea right up to the edges.
+      meta('mobile-web-app-capable', 'yes'),
+      meta('apple-mobile-web-app-capable', 'yes'),
+      meta('apple-mobile-web-app-status-bar-style', 'black-translucent'),
+      meta('apple-mobile-web-app-title', SITE.name),
+      meta('format-detection', 'telephone=no'),
       link('icon', 'favicon.png', { type: 'image/png' }),
       link('apple-touch-icon', 'apple-touch-icon.png'),
       link('manifest', 'site.webmanifest'),

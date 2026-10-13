@@ -3,6 +3,8 @@ import { Pix, type Ramp } from '@/engine/pix';
 
 /** How much the UI skin is magnified. Borders in CSS must use multiples of this. */
 export const UI_SCALE = 3;
+/** The compact interface (phones, small windows) wears the same skin one size smaller. */
+export const UI_SCALE_COMPACT = 2;
 
 /** Colours of the parchment-and-wood interface. */
 export const UI_COLORS = {
@@ -14,10 +16,10 @@ export const UI_COLORS = {
   nightLight: 0x5c4a70,
 } as const;
 
-function upscaled(p: Pix): string {
+function upscaled(p: Pix, scale: number): string {
   const canvas = document.createElement('canvas');
-  canvas.width = p.w * UI_SCALE;
-  canvas.height = p.h * UI_SCALE;
+  canvas.width = p.w * scale;
+  canvas.height = p.h * scale;
   const ctx = canvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(p.toCanvas(), 0, 0, canvas.width, canvas.height);
@@ -97,18 +99,22 @@ const BUTTONS: Record<string, Ramp> = {
 
 /**
  * Paint the interface skin. Returns CSS custom properties (name → `url(...)`)
- * that index.css turns into 9-slice borders.
+ * that index.css turns into 9-slice borders. Every piece comes in two sizes:
+ * `--skin-name` for the roomy interface and `--skin-name-s` for the compact one.
  */
 export function buildUiSkin(): Record<string, string> {
-  const skin: Record<string, string> = {
-    '--skin-panel': upscaled(panelFrame()),
-    '--skin-slot': upscaled(slot(UI_COLORS.parchmentShade, PAL.wood[1])),
-    '--skin-slot-lit': upscaled(slot(0xfff3c9, PAL.gold[1])),
-    '--skin-plaque': upscaled(plaque()),
+  const skin: Record<string, string> = {};
+  const paint = (name: string, piece: Pix) => {
+    skin[`--skin-${name}`] = upscaled(piece, UI_SCALE);
+    skin[`--skin-${name}-s`] = upscaled(piece, UI_SCALE_COMPACT);
   };
+  paint('panel', panelFrame());
+  paint('slot', slot(UI_COLORS.parchmentShade, PAL.wood[1]));
+  paint('slot-lit', slot(0xfff3c9, PAL.gold[1]));
+  paint('plaque', plaque());
   for (const [name, ramp] of Object.entries(BUTTONS)) {
-    skin[`--skin-btn-${name}`] = upscaled(button(ramp, false));
-    skin[`--skin-btn-${name}-down`] = upscaled(button(ramp, true));
+    paint(`btn-${name}`, button(ramp, false));
+    paint(`btn-${name}-down`, button(ramp, true));
   }
   return skin;
 }

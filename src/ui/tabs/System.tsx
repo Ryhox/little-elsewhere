@@ -8,6 +8,9 @@ import type { HelperRule } from '@/game/types';
 import { DEFAULT_SETTINGS, useUI, type Settings } from '@/store/ui';
 import { Btn, Icon, SectionTitle, useTick } from '../widgets';
 
+/** Can this device buzz? (Phones with Android can; iPhones and desktops cannot.) */
+const canBuzz = () => typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+
 const TARGETS: readonly [HelperRule['target'], string, string?][] = [
   ['any', 'Any building'],
   ['flora', 'Plants'],
@@ -58,7 +61,7 @@ export function HelpersTab() {
             Budget
             <span className="flex gap-1">
               {BUDGETS.map((b) => (
-                <Btn key={b} tone={rule.budget === b ? 'green' : 'tan'} className={`text-xs ${rule.budget === b ? 'is-down' : ''}`} onClick={() => setHelper(game, i, { budget: b })}>
+                <Btn key={b} tone={rule.budget === b ? 'green' : 'tan'} className={`btn-chip text-xs ${rule.budget === b ? 'is-down' : ''}`} onClick={() => setHelper(game, i, { budget: b })}>
                   {b * 100}%
                 </Btn>
               ))}
@@ -133,6 +136,7 @@ export function SettingsTab() {
   const settings = useUI((u) => u.settings);
   const setSettings = useUI((u) => u.setSettings);
   const toast = useUI((u) => u.toast);
+  const touch = useUI((u) => u.touch);
   const [code, setCode] = useState('');
   const [confirmWipe, setConfirmWipe] = useState(false);
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings({ [key]: value } as Pick<Settings, K>);
@@ -152,7 +156,7 @@ export function SettingsTab() {
           <span>Detail</span>
           <span className="flex gap-1">
             {RENDER.quality.map((q, i) => (
-              <Btn key={q.name} tone={settings.quality === i ? 'green' : 'tan'} className={`text-xs ${settings.quality === i ? 'is-down' : ''}`} onClick={() => set('quality', i)}>
+              <Btn key={q.name} tone={settings.quality === i ? 'green' : 'tan'} className={`btn-chip text-xs ${settings.quality === i ? 'is-down' : ''}`} onClick={() => set('quality', i)}>
                 {q.name}
               </Btn>
             ))}
@@ -162,7 +166,7 @@ export function SettingsTab() {
           <span>Frame rate</span>
           <span className="flex gap-1">
             {FPS_OPTIONS.map(([fps, label]) => (
-              <Btn key={fps} tone={settings.fps === fps ? 'green' : 'tan'} className={`text-xs ${settings.fps === fps ? 'is-down' : ''}`} onClick={() => set('fps', fps)}>
+              <Btn key={fps} tone={settings.fps === fps ? 'green' : 'tan'} className={`btn-chip text-xs ${settings.fps === fps ? 'is-down' : ''}`} onClick={() => set('fps', fps)}>
                 {label}
               </Btn>
             ))}
@@ -176,6 +180,7 @@ export function SettingsTab() {
         <Toggle label="Floating numbers" value={settings.numbers} onChange={(v) => set('numbers', v)} />
         <Toggle label="Camera follows new lands" value={settings.autoCamera} onChange={(v) => set('autoCamera', v)} />
         <Toggle label="Short season transition" value={settings.shortCutscene} onChange={(v) => set('shortCutscene', v)} />
+        {touch && canBuzz() && <Toggle label="Buzz when I tap" value={settings.haptics} onChange={(v) => set('haptics', v)} />}
         <Btn className="text-sm" onClick={() => setSettings(DEFAULT_SETTINGS)}>
           Restore defaults
         </Btn>
@@ -264,11 +269,21 @@ export function SettingsTab() {
         </div>
       </div>
 
-      <div className="mt-1 text-center text-xs leading-tight text-ink-soft">
-        Drag to look around · scroll or pinch to zoom
-        <br />
-        Space: tap the spring · H: hide menus · 1–5: abilities
-      </div>
+      {touch ? (
+        <div className="mt-1 text-center text-xs leading-tight text-ink-soft">
+          Drag to look around · pinch to zoom
+          <br />
+          Keep a finger on the spring to go on tapping
+          <br />
+          Rest a finger on anything to read about it
+        </div>
+      ) : (
+        <div className="mt-1 text-center text-xs leading-tight text-ink-soft">
+          Drag to look around · scroll or pinch to zoom
+          <br />
+          Space: tap the spring · H: hide menus · 1–5: abilities
+        </div>
+      )}
     </div>
   );
 }

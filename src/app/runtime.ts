@@ -7,6 +7,7 @@ import { REGION_BY_ID } from '@/config/regions';
 import { RENDER } from '@/config/render';
 import { WONDER_BY_ID } from '@/config/seasons';
 import type { Atlas } from '@/engine/atlas';
+import type { Insets } from '@/engine/camera';
 import { seasonClockDue } from '@/game/automation';
 import { createGame, type Game } from '@/game/context';
 import { refresh } from '@/game/economy';
@@ -29,10 +30,14 @@ export interface Runtime {
   turn(): void;
   skipCutscene(): void;
   save(): void;
-  /** Tell the camera how much of the screen the UI covers (CSS pixels). */
-  setInsets(insets: { left: number; right: number; top: number; bottom: number }): void;
-  /** What the pointer is over in the world, for tooltips. */
-  onHover: (hover: Hover | null, x: number, y: number) => void;
+  /**
+   * Tell the camera about the screen (in CSS pixels): how much of it the UI covers now, how much
+   * it covers with the menu shut (lands are framed to fit that), and whether it is a small or
+   * touched screen, which frames closer and takes taps more generously.
+   */
+  setView(covered: Insets, framed: Insets, handheld: boolean): void;
+  /** What the pointer is over in the world, for tooltips. `pinned`: a finger tapped it, so the tooltip stays put. */
+  onHover: (hover: Hover | null, x: number, y: number, pinned?: boolean) => void;
   dispose(): void;
 }
 
@@ -59,6 +64,10 @@ const ASLEEP_SECONDS = 4;
 const MAX_FRAME = 0.25;
 const MAX_STEPS = 8;
 const ENDING_PAUSE_MS = 5000;
+/** While the game is this young (milliseconds), the interface is still finding its size: the camera follows at once instead of gliding. */
+const SETTLING_MS = 600;
+/** How long the phone buzzes under a finger whose tap did something, in milliseconds. */
+const BUZZ_MS = 8;
 
 function applySettings(world: World, sound: Sound, settings: Settings): void {
   world.quality = RENDER.quality[Math.min(RENDER.quality.length - 1, Math.max(0, settings.quality))];
@@ -141,31 +150,50 @@ export function startRuntime(canvas: HTMLCanvasElement): Runtime {
   }
   if (game.s.blessingChoices.length && !ui().modal) ui().setModal({ kind: 'blessing' });
 
-  let insets = { left: 0, right: 0, top: 0, bottom: 0 };
+  const started = performance.now();
+  let insets: Insets = { left: 0, right: 0, top: 0, bottom: 0 };
+  let framed = insets;
   let resized = false;
-  const resize = () => {
+  const same = (a: Insets, b: Insets) => a.left === b.left && a.right === b.right && a.top === b.top && a.bottom === b.bottom;
+  const scaled = (area: Insets, ratio: number): Insets => ({ left: area.left * ratio, right: area.right * ratio, top: area.top * ratio, bottom: area.bottom * ratio });
+  /** Fit the canvas to its place on the page. Returns true if that changed its size. */
+  const resize = (): boolean => {
     const ratio = window.devicePixelRatio || 1;
     const w = Math.max(1, Math.round(canvas.clientWidth * ratio));
     const h = Math.max(1, Math.round(canvas.clientHeight * ratio));
-    if (canvas.width !== w || canvas.height !== h) {
+    const changed = canvas.width !== w || canvas.height !== h;
+    if (changed) {
       canvas.width = w;
       canvas.height = h;
     }
-    world.camera.resize(w, h);
-    world.camera.setInsets({ left: insets.left * ratio, right: insets.right * ratio, top: insets.top * ratio, bottom: insets.bottom * ratio });
+    const camera = world.camera;
+    const { minZoom, maxZoom, snugZoom } = RENDER.camera;
+    world.ratio = ratio;
+    camera.resize(w, h);
+    // Zoom is counted in the screen's own pixels, and a dense screen has more of them to the centimetre: it may zoom in further to match.
+    camera.setLimits(minZoom, Math.round(maxZoom * Math.max(1, ratio)), world.handheld ? Math.max(minZoom, Math.round(snugZoom * ratio)) : minZoom);
+    camera.setInsets(scaled(insets, ratio), scaled(framed, ratio));
     // Changing a canvas's size empties it: the very next frame must be drawn, whatever the frame-rate cap says.
     resized = true;
+    return changed;
+  };
+  /** The window was resized or the phone turned: a view the player has not moved since it was framed is framed again. */
+  const onResize = () => {
+    if (resize() && ui().settings.autoCamera && world.camera.auto) world.reframe();
   };
   resize();
   world.frameAll();
   world.camera.snap();
-  window.addEventListener('resize', resize);
+  window.addEventListener('resize', onResize);
 
   const input = new WorldInput(canvas, world, {
-    onHover: (hover, x, y) => runtime.onHover(hover, x, y),
+    onHover: (hover, x, y, pinned) => runtime.onHover(hover, x, y, pinned),
     onActivity: () => sound.unlock(),
     onLook: () => {
       game.s.stats.looked = 1;
+    },
+    onTouch: () => {
+      if (ui().settings.haptics) navigator.vibrate?.(BUZZ_MS);
     },
   });
 
@@ -206,7 +234,8 @@ export function startRuntime(canvas: HTMLCanvasElement): Runtime {
     if (!resized && settings.fps > 0 && now - lastDraw < 1000 / settings.fps - 2) return;
     resized = false;
     lastDraw = now;
-    let dt = (now - last) / 1000;
+    // The very first frame can be stamped a hair before the game began: time never runs backwards.
+    let dt = Math.max(0, (now - last) / 1000);
     last = now;
     if (dt > ASLEEP_SECONDS) {
       // The tab was in the background: credit the time the way an absence is credited.
@@ -256,11 +285,18 @@ export function startRuntime(canvas: HTMLCanvasElement): Runtime {
     turn,
     skipCutscene: () => world.cutscene.skip(),
     save,
-    setInsets: (next) => {
-      const changed = next.left !== insets.left || next.right !== insets.right || next.top !== insets.top || next.bottom !== insets.bottom;
-      insets = next;
+    setView: (covered, fits, handheld) => {
+      const settling = performance.now() - started < SETTLING_MS;
+      // A big screen frames every land afresh whenever a menu opens or shuts. A small one keeps the
+      // player's own view through that, and only frames again when the room around the menus changes.
+      const changed = handheld !== world.handheld || (handheld ? !same(fits, framed) : !same(covered, insets));
+      const resting = handheld && !world.camera.auto;
+      insets = covered;
+      framed = fits;
+      world.handheld = handheld;
       resize();
-      if (changed && ui().settings.autoCamera) world.frameAll();
+      if (changed && ui().settings.autoCamera && !resting) world.reframe();
+      if (settling && handheld) world.camera.snap();
     },
     onHover: () => {},
     dispose: () => {
@@ -270,7 +306,7 @@ export function startRuntime(canvas: HTMLCanvasElement): Runtime {
       world.dispose();
       unsubscribeSettings();
       for (const off of unwire) off();
-      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', onResize);
       window.removeEventListener('beforeunload', save);
       document.removeEventListener('visibilitychange', onHide);
       if (current === runtime) current = null;

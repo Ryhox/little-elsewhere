@@ -11,6 +11,22 @@ export const RENDER = {
     padding: 30,
     /** Pixels of pointer travel before a press counts as a drag rather than a tap. */
     dragThreshold: 6,
+    /** A finger is less steady than a mouse: it may wander this far and still be a tap. */
+    touchDragThreshold: 10,
+    /** A fingertip is blunt. Whatever it most likely meant within this many screen pixels of the touch is taken. */
+    fingerReach: 15,
+    /** Two fingers must move this far (apart, together or along) before they count as a pinch rather than two taps. */
+    pinchSlack: 8,
+    /** Letting go of a drag with at least this speed (pixels a second) flings the view on. `friction` is how fast it slows: higher stops sooner. */
+    flingSpeed: 140,
+    friction: 4.5,
+    /**
+     * On a phone or any small screen, lands are framed closer: this little room is kept around
+     * them (less than none lets their very edges run off the screen), and the view never steps back by itself further
+     * than `snugZoom` screen pixels per world pixel. Past that it keeps to the spring's island.
+     */
+    snugPadding: -2,
+    snugZoom: 1,
   },
 
   /** Wind: plants lean with a smooth shear as occasional gusts travel across the world. */

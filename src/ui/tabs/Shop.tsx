@@ -219,7 +219,7 @@ export function UpgradesTab() {
           {(Object.keys(CATEGORY_LABELS) as (UpgradeCat | 'all')[])
             .filter((cat) => cat === 'all' || present.has(cat))
             .map((cat) => (
-              <Btn key={cat} tone={filter === cat ? 'green' : 'tan'} className={`text-xs ${filter === cat ? 'is-down' : ''}`} onClick={() => setFilter(cat)}>
+              <Btn key={cat} tone={filter === cat ? 'green' : 'tan'} className={`btn-chip text-xs ${filter === cat ? 'is-down' : ''}`} onClick={() => setFilter(cat)}>
                 {CATEGORY_LABELS[cat]}
               </Btn>
             ))}
@@ -233,7 +233,7 @@ export function UpgradesTab() {
         <>
           <SectionTitle
             right={
-              <button type="button" className="cursor-pointer text-sm underline" onClick={() => setShowOwned(!showOwned)}>
+              <button type="button" className="cursor-pointer text-sm underline touch:-m-2 touch:p-2" onClick={() => setShowOwned(!showOwned)}>
                 {showOwned ? 'hide' : 'show'}
               </button>
             }

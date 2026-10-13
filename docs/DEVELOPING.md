@@ -62,13 +62,15 @@ Almost every change is a data edit in `src/config/`:
 | Change colours                     | `palette.ts`: every sprite follows                              |
 | Change lighting, water, wind       | `render.ts`                                                      |
 | Change a sound                     | `audio.ts`                                                       |
-| Reword the tutorial                | `guide.ts`: lessons, what Claudia says and which gesture she makes, her welcome back and her closing words |
+| Reword the tutorial                | `guide.ts`: lessons, what Claudia says (with a second wording for touch screens where it differs) and which gesture she makes, her welcome back and her closing words |
 | Give Claudia a new gesture         | `teacher.ts` (key poses, as data, in `PICTURE_ANIMS`): she is painted from them in `art/teacherPicture.ts` |
 | Change where Claudia's eyes, mouth and arms are | `teacher.ts` (`TEACHER_PICTURE`)                    |
 | Change the sea life                | `sea.ts`: reefs, fish schools, leaping fish, boats, rocks       |
 | Change a mouse pointer             | `art/cursors.ts`: each is a small character grid                |
 | Change the page's title, description, address or author links | `site.ts`, then `npm run site` |
 | Tune sweeping, shaking, petting, the rain cloud | `balance.ts` (`play`: what they are worth) and `render.ts` (`play`, `income`: how they look) |
+| Change how the menus fit a screen  | `ui/layout.ts`: which screens get the roomy desktop interface and which the compact one, and how big its parts are |
+| Tune the touch controls            | `render.ts` (`camera`): how far a fingertip reaches, pinching, flicking, and how close lands are framed on a small screen |
 
 ### How effects work
 
@@ -117,6 +119,16 @@ and drawn again from the shoulder.
 - **The pointer tells you what a click does.** Every kind of thing in the world has its own
   mouse pointer (tap, sweep, shake, pet, carry the cloud, something to find, something to read
   about), and it changes for a moment when the click lands.
+- **Any screen.** A big window gets the roomy interface. Anything smaller gets the compact one,
+  which wears the same skin painted one size smaller: its menu runs along the bottom of a phone
+  held upright and down the side of one lying flat. A screen smaller than even that was drawn for
+  sees the whole interface scaled down to fit. `ui/layout.ts` decides all of this, and tells the
+  camera how much of the screen is left for the world.
+- **Fingers.** Nothing can be hovered on a touch screen, so a tap on anything that is not a
+  button shows its tooltip, and resting a finger on a button does the same. Each finger taps by
+  itself (two thumbs can drum on the spring), a stroke that starts on a dewdrop sweeps instead of
+  moving the view, a tap reaches for the nearest thing it could have meant, and a flick sends the
+  view gliding. On the Evergreen tree a tap picks a node, and a button under the board buys it.
 - **A finite world.** Every building has a maximum, so each season eventually hits a wall
   (that is the cue to rebirth) and the story can actually be completed.
 - **Rendering.** The world is drawn at one pixel per world pixel into an off-screen buffer and

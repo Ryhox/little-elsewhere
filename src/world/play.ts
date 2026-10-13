@@ -72,12 +72,17 @@ export class Play {
     this.drops.push(drop);
   }
 
-  /** The pointer is here: gather any dewdrop it is touching. */
-  hover(wx: number, wy: number): void {
+  /**
+   * The pointer is here: gather any dewdrop it is touching. A finger covers more than a mouse
+   * pointer does, so it may pass a wider `reach`. Returns true if it gathered anything.
+   */
+  hover(wx: number, wy: number, reach: number = PLAY.sweep.reach): boolean {
     const p = PLAY.sweep;
+    let gathered = false;
     for (let i = this.drops.length - 1; i >= 0; i--) {
       const d = this.drops[i];
-      if (Math.abs(wx - d.x) > p.reach || Math.abs(wy - (d.y - d.lift)) > p.reach) continue;
+      if (Math.abs(wx - d.x) > reach || Math.abs(wy - (d.y - d.lift)) > reach) continue;
+      gathered = true;
       this.drops.splice(i, 1);
       const amount = sweep(this.s.game, this.chain);
       this.chain++;
@@ -86,19 +91,20 @@ export class Play {
       const streak = this.chain > 2 ? ` ×${this.chain}` : '';
       this.s.say(`+${fmt(amount, 1)}${streak}`, d.x, d.y - d.lift - 4, RESOURCES.dew.color);
     }
+    return gathered;
   }
 
   /* ───────────────────────────── The rain cloud ───────────────────────────── */
 
-  /** Is the rain cloud under this world point? */
-  overCloud(wx: number, wy: number): boolean {
+  /** Is the rain cloud under this world point (or within `reach` of it, for a finger)? */
+  overCloud(wx: number, wy: number, reach = 0): boolean {
     const c = this.cloud;
-    return !!c && hits(c, currentSprite(c, this.s.season), wx, wy, 5);
+    return !!c && hits(c, currentSprite(c, this.s.season), wx, wy, 5 + reach);
   }
 
   /** Try to pick up the cloud at a world point. */
-  grab(wx: number, wy: number): boolean {
-    if (!this.overCloud(wx, wy)) return false;
+  grab(wx: number, wy: number, reach = 0): boolean {
+    if (!this.overCloud(wx, wy, reach)) return false;
     this.held = true;
     return true;
   }

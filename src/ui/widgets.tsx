@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { rt } from '@/app/runtime';
 import { RESOURCES } from '@/config/resources';
 import { fmt } from '@/game/format';
@@ -7,6 +7,16 @@ import { useUI, type Tip } from '@/store/ui';
 
 /** Re-render with the live game a few times a second. */
 export const useTick = () => useUI((s) => s.tick);
+
+/** How the interface is arranged on this screen. */
+export const useLayout = () => useUI((s) => s.layout);
+
+/** A point on the screen (CSS pixels, as events give it) in the interface's own pixels. */
+export function toUi(clientX: number, clientY: number): [number, number] {
+  const { scale, compact, safe } = useUI.getState().layout;
+  // The roomy interface starts inside the screen's safe edges; the compact one reaches the edges and is scaled.
+  return compact ? [clientX / scale, clientY / scale] : [clientX - safe.left, clientY - safe.top];
+}
 
 /** How long the menus take to slide in or out, in milliseconds (the `.slide` and drawer transitions in index.css match it). */
 export const SLIDE_MS = 220;
@@ -61,10 +71,127 @@ export function CostLine({ cost, check = true, className = '' }: { cost: Cost; c
   );
 }
 
-/** Handlers that show a tooltip while the pointer is over an element. */
-export function tip(build: () => Omit<Tip, 'x' | 'y'>) {
-  const show = (e: MouseEvent) => useUI.getState().setTip({ ...build(), x: e.clientX, y: e.clientY });
-  return { onMouseEnter: show, onMouseMove: show, onMouseLeave: () => useUI.getState().setTip(null) };
+/* ───────────────────────────── Tooltips ───────────────────────────── */
+
+type TipWords = () => Omit<Tip, 'x' | 'y' | 'anchor'>;
+
+/** How long a finger rests on something before its tooltip appears, and how far it may wander meanwhile. */
+const HOLD_MS = 420;
+const HOLD_SLACK = 10;
+/** After a tooltip was held open, the click that follows letting go is not meant as a press. */
+const SWALLOW_MS = 700;
+
+/** What a finger pinned a tooltip to, and the hold that is waiting to do so. */
+let pinnedTo: Element | null = null;
+let hold: { timer: number; x: number; y: number } | null = null;
+let swallowUntil = 0;
+
+const byMouse = (e: PointerEvent) => e.pointerType !== 'touch';
+
+function cancelHold(): void {
+  if (hold) clearTimeout(hold.timer);
+  hold = null;
+}
+
+/** Pin a tooltip beside an element, for a finger: it stays until something else is touched. */
+function pin(el: Element, words: TipWords): void {
+  const r = el.getBoundingClientRect();
+  const [left, top] = toUi(r.left, r.top);
+  const [right, bottom] = toUi(r.right, r.bottom);
+  pinnedTo = el;
+  useUI.getState().setTip({ ...words(), x: (left + right) / 2, y: top, anchor: { left, top, right, bottom } });
+}
+
+/** Take down a tooltip a finger pinned. */
+function unpin(): void {
+  pinnedTo = null;
+  if (useUI.getState().tip?.anchor) useUI.getState().setTip(null);
+}
+
+/** Take down whatever tooltip is showing. */
+export function clearTip(): void {
+  pinnedTo = null;
+  if (useUI.getState().tip) useUI.getState().setTip(null);
+}
+
+/**
+ * Handlers that show a tooltip for an element. A mouse sees it while hovering. A finger cannot
+ * hover: a tap on something that does nothing else shows it, and so does resting the finger on
+ * anything, buttons included, for a moment.
+ */
+export function tip(words: TipWords) {
+  const show = (e: PointerEvent) => {
+    if (!byMouse(e)) return;
+    const [x, y] = toUi(e.clientX, e.clientY);
+    useUI.getState().setTip({ ...words(), x, y });
+  };
+  return {
+    onPointerEnter: show,
+    onPointerMove: (e: PointerEvent) => {
+      if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > HOLD_SLACK) cancelHold();
+      show(e);
+    },
+    onPointerLeave: (e: PointerEvent) => {
+      cancelHold();
+      if (byMouse(e)) useUI.getState().setTip(null);
+    },
+    onPointerDown: (e: PointerEvent) => {
+      if (byMouse(e)) return;
+      const el = e.currentTarget;
+      cancelHold();
+      hold = {
+        x: e.clientX,
+        y: e.clientY,
+        timer: window.setTimeout(() => {
+          hold = null;
+          swallowUntil = Infinity;
+          pin(el, words);
+        }, HOLD_MS),
+      };
+    },
+    onClick: (e: MouseEvent) => {
+      if (!useUI.getState().touch) return;
+      // A press on a button inside (Buy, say) is for the button, not a question about the row.
+      const inner = (e.target as Element).closest('button, a, input, select, textarea, label');
+      if (inner && inner !== e.currentTarget && e.currentTarget.contains(inner)) return;
+      if (pinnedTo === e.currentTarget) unpin();
+      else pin(e.currentTarget, words);
+    },
+  };
+}
+
+/**
+ * Listen, once, for what tooltips need to know about the whole page: touching anything else
+ * takes a pinned one down, and so does scrolling. Returns how to stop listening.
+ */
+export function watchTips(): () => void {
+  const down = (e: globalThis.PointerEvent) => {
+    if (useUI.getState().tip?.anchor && !(pinnedTo && e.target instanceof Node && pinnedTo.contains(e.target))) unpin();
+  };
+  const click = (e: globalThis.MouseEvent) => {
+    if (performance.now() > swallowUntil) return;
+    swallowUntil = 0;
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  // The finger lifts: a hold that never got that far is off, and one that did has a click coming that means nothing.
+  const up = () => {
+    cancelHold();
+    if (swallowUntil === Infinity) swallowUntil = performance.now() + SWALLOW_MS;
+  };
+  const scroll = () => useUI.getState().tip?.anchor && unpin();
+  window.addEventListener('pointerdown', down, true);
+  window.addEventListener('pointerup', up, true);
+  window.addEventListener('pointercancel', up, true);
+  window.addEventListener('click', click, true);
+  window.addEventListener('scroll', scroll, true);
+  return () => {
+    window.removeEventListener('pointerdown', down, true);
+    window.removeEventListener('pointerup', up, true);
+    window.removeEventListener('pointercancel', up, true);
+    window.removeEventListener('click', click, true);
+    window.removeEventListener('scroll', scroll, true);
+  };
 }
 
 /** A chunky pixel button. Plays a click, or a dull thud when it cannot be pressed. */

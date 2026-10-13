@@ -18,6 +18,14 @@
   --color-rose: #e04a3c;
 }
 
+/*
+ * The interface arranges itself by the screen it is on (see ui/layout.ts), and says how on its
+ * root element. These turn that into variants: `compact:` for the small interface of phones and
+ * little windows, and `touch:` for while a finger rather than a mouse is in use.
+ */
+@custom-variant compact (&:where([data-compact] *));
+@custom-variant touch (&:where([data-touch] *));
+
 html,
 body,
 #root {
@@ -28,10 +36,27 @@ body,
   font-family: var(--font-pixel);
   color: var(--color-ink);
   -webkit-font-smoothing: none;
+  /* The pixel font joins "fi" into one shape that reads as a capital A: keep its letters apart. */
+  font-variant-ligatures: none;
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
   cursor: var(--cur-arrow), default;
+  /* A phone must not treat the game as a page: no pulling to refresh, no rubber band, no grey flash or menu under a finger. */
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Text that is meant to be typed into or copied still works the usual way. */
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  touch-action: manipulation;
 }
 
 /* Hand-drawn mouse pointers (painted in src/art/cursors.ts). Anything that can be pressed gets the pointing hand. */
@@ -84,6 +109,8 @@ canvas {
 .btn {
   --skin: var(--skin-btn-tan);
   --skin-down: var(--skin-btn-tan-down);
+  --skin-s: var(--skin-btn-tan-s);
+  --skin-down-s: var(--skin-btn-tan-down-s);
   border: 12px solid transparent;
   border-image: var(--skin) 12 fill / 12px stretch;
   padding: 0 4px 3px;
@@ -95,8 +122,11 @@ canvas {
   transition: filter 80ms;
 }
 
-.btn:hover:not(:disabled) {
-  filter: brightness(1.08);
+/* Only where there is a pointer to hover with: under a finger the glow would stick after every tap. */
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
 }
 
 .btn:active:not(:disabled),
@@ -108,29 +138,87 @@ canvas {
 .btn:disabled {
   --skin: var(--skin-btn-off);
   --skin-down: var(--skin-btn-off-down);
+  --skin-s: var(--skin-btn-off-s);
+  --skin-down-s: var(--skin-btn-off-down-s);
   color: #5c5651;
 }
 
 .btn-green {
   --skin: var(--skin-btn-green);
   --skin-down: var(--skin-btn-green-down);
+  --skin-s: var(--skin-btn-green-s);
+  --skin-down-s: var(--skin-btn-green-down-s);
 }
 
 .btn-gold {
   --skin: var(--skin-btn-gold);
   --skin-down: var(--skin-btn-gold-down);
+  --skin-s: var(--skin-btn-gold-s);
+  --skin-down-s: var(--skin-btn-gold-down-s);
 }
 
 .btn-red {
   --skin: var(--skin-btn-red);
   --skin-down: var(--skin-btn-red-down);
+  --skin-s: var(--skin-btn-red-s);
+  --skin-down-s: var(--skin-btn-red-down-s);
   color: #fff3ea;
 }
 
 .btn-blue {
   --skin: var(--skin-btn-blue);
   --skin-down: var(--skin-btn-blue-down);
+  --skin-s: var(--skin-btn-blue-s);
+  --skin-down-s: var(--skin-btn-blue-down-s);
   color: #f2f8ff;
+}
+
+/* ─────────── The compact interface: the same skin, painted one size smaller (2× instead of 3×) ─────────── */
+
+[data-compact] .skin-panel {
+  border-width: 10px;
+  border-image: var(--skin-panel-s) 10 fill / 10px stretch;
+}
+
+[data-compact] .skin-plaque {
+  border-width: 8px;
+  border-image: var(--skin-plaque-s) 8 fill / 8px stretch;
+}
+
+[data-compact] .skin-slot {
+  border-width: 6px;
+  border-image: var(--skin-slot-s) 6 fill / 6px stretch;
+}
+
+[data-compact] .skin-slot-lit {
+  border-width: 6px;
+  border-image: var(--skin-slot-lit-s) 6 fill / 6px stretch;
+}
+
+[data-compact] .btn {
+  border-width: 8px;
+  border-image: var(--skin-s) 8 fill / 8px stretch;
+  padding: 0 4px 2px;
+}
+
+[data-compact] .btn:active:not(:disabled),
+[data-compact] .btn.is-down {
+  border-image-source: var(--skin-down-s);
+  padding: 2px 4px 0;
+}
+
+/* On a touch screen everything that can be pressed is at least a fingertip tall. */
+[data-coarse] .btn {
+  min-height: 40px;
+}
+
+[data-coarse] .btn.btn-chip {
+  min-height: 34px;
+}
+
+/* A slider is a thin thing to catch with a thumb: give it a taller strip to be caught in. */
+[data-coarse] input[type='range'] {
+  height: 32px;
 }
 
 /* ─────────── Small pieces ─────────── */
@@ -140,6 +228,14 @@ canvas {
   scrollbar-width: thin;
   scrollbar-color: #9d6236 #e6d0a2;
   touch-action: pan-y;
+  /* Reaching the end of a list must not start scrolling (or refreshing) the page behind it. */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* A list that also scrolls sideways (the Evergreen tree on a narrow screen). */
+.scroll-both {
+  touch-action: pan-x pan-y;
 }
 
 .scroll-pixel::-webkit-scrollbar {
@@ -250,10 +346,8 @@ canvas {
   transform: translateY(28px);
 }
 
-@media (min-width: 768px) {
-  .slide-menu.is-away {
-    transform: translateX(28px);
-  }
+[data-dock='side'] .slide-menu.is-away {
+  transform: translateX(28px);
 }
 
 @media (prefers-reduced-motion: reduce) {
