@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { rt } from '@/app/runtime';
 import { RESOURCES } from '@/config/resources';
+import { refresh } from '@/game/economy';
 import { fmt } from '@/game/format';
 import { RES, type Cost } from '@/game/types';
 import { useUI, type Tip } from '@/store/ui';
@@ -225,6 +226,9 @@ export function Btn({
         rt().sound.unlock();
         if (sound) rt().sound.play(sound);
         onClick?.();
+        // What was just bought counts at once: without this the menu would show, until the next tick, the old income shared out among one more.
+        const { game } = rt();
+        if (game.dirty) refresh(game);
         useUI.getState().bump();
       }}
     >
